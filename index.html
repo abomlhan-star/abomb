@@ -1,12 +1,48 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html class="h-full" lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>成研运营项目管理系统 - 登录</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#3b82f6",
+              "background-light": "#f1f5f9",
+              "background-dark": "#020617",
+            },
+            fontFamily: {
+              display: ["Inter", "system-ui", "sans-serif"],
+            },
+            borderRadius: {
+              DEFAULT: "12px",
+            },
+            backgroundImage: {
+              'tech-gradient': "linear-gradient(135deg, #1e1b4b 0%, #312e81 25%, #4c1d95 50%, #1e1b4b 100%)",
+            },
+            animation: {
+              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'glow': 'glow-pulse 2s infinite ease-in-out',
+            },
+            keyframes: {
+              'glow-pulse': {
+                '0%, 100%': { boxShadow: '0 0 5px rgba(59, 130, 246, 0.5)' },
+                '50%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.8)' },
+              }
+            }
+          },
+        },
+      };
+    </script>
   </head>
-  <body>
+  <body class="h-full font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 overflow-hidden">
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
