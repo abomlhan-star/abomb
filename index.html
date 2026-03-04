@@ -1,48 +1,81 @@
 <!DOCTYPE html>
-<html class="h-full" lang="zh-CN">
+<html lang="zh-CN">
   <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>成研运营项目管理 - 登录</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>成研运营项目管理 - Enterprise Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
     <script>
       tailwind.config = {
         darkMode: "class",
         theme: {
           extend: {
             colors: {
-              primary: "#3b82f6",
-              "background-light": "#f1f5f9",
-              "background-dark": "#020617",
+              primary: "#3B82F6",
+              "background-light": "#F8FAFC",
+              "background-dark": "#0F172A",
+              "card-light": "#FFFFFF",
+              "card-dark": "#1E293B",
             },
             fontFamily: {
               display: ["Inter", "system-ui", "sans-serif"],
             },
             borderRadius: {
-              DEFAULT: "12px",
+              DEFAULT: "0.75rem",
             },
-            backgroundImage: {
-              'tech-gradient': "linear-gradient(135deg, #1e1b4b 0%, #312e81 25%, #4c1d95 50%, #1e1b4b 100%)",
-            },
-            animation: {
-              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-              'glow': 'glow-pulse 2s infinite ease-in-out',
-            },
-            keyframes: {
-              'glow-pulse': {
-                '0%, 100%': { boxShadow: '0 0 5px rgba(59, 130, 246, 0.5)' },
-                '50%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.8)' },
-              }
-            }
           },
         },
       };
     </script>
+    <style type="text/tailwindcss">
+      body { font-family: 'Inter', sans-serif; }
+      ::-webkit-scrollbar { height: 6px; width: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+      .dark ::-webkit-scrollbar-thumb { background: #475569; }
+      .sticky-left {
+        position: sticky;
+        left: 0;
+        z-index: 10;
+        background-color: inherit;
+      }
+      .sticky-right {
+        position: sticky;
+        right: 0;
+        z-index: 10;
+        background-color: inherit;
+      }
+      .sticky-left::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 8px;
+        pointer-events: none;
+        box-shadow: inset 10px 0 8px -10px rgba(0,0,0,0.15);
+        transform: translateX(100%);
+      }
+      .sticky-right::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 8px;
+        pointer-events: none;
+        box-shadow: inset -10px 0 8px -10px rgba(0,0,0,0.15);
+        transform: translateX(-100%);
+      }
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+        font-size: 1.25rem;
+      }
+    </style>
   </head>
-  <body class="h-full font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 overflow-hidden">
+  <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex">
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

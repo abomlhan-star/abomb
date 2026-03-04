@@ -1,294 +1,362 @@
 <template>
-  <div class="home-container">
-    <!-- 顶部导航栏 -->
-    <header class="top-nav">
-      <div class="nav-left">
-        <h1 class="app-title">成研运营项目管理</h1>
+  <div class="flex min-h-screen">
+    <!-- 左侧边栏 -->
+    <aside class="w-72 border-r border-slate-200 dark:border-slate-800 bg-card-light dark:bg-card-dark flex flex-col fixed h-full z-20">
+      <div class="p-6">
+        <h1 class="text-xl font-bold tracking-tight">成研运营系统</h1>
+        <button 
+          class="mt-6 w-full flex items-center justify-center gap-2 bg-primary hover:bg-blue-600 text-white py-2.5 px-4 rounded-lg font-medium transition-all shadow-sm"
+          @click="showCreateProjectDialog = true"
+        >
+          <span class="material-symbols-outlined">add</span>
+          新建项目
+        </button>
       </div>
-      <div class="nav-right">
-        <span class="welcome-text">欢迎，{{ username }}</span>
-        <el-button type="text" @click="handleLogout">退出登录</el-button>
-      </div>
-    </header>
-
-    <!-- 主内容区域 -->
-    <div class="main-content">
-      <!-- 左侧边栏 - 项目列表 -->
-      <aside class="sidebar">
-        <div class="sidebar-header">
-          <el-button type="primary" class="new-project-btn" @click="showCreateProjectDialog = true">
-            <el-icon><Plus /></el-icon>
-            新建项目
-          </el-button>
-        </div>
-        
-        <div class="search-box">
-          <el-input
+      
+      <div class="px-4 mb-4">
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-sm">search</span>
+          <input 
             v-model="searchQuery"
+            class="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
             placeholder="搜索项目..."
-            prefix-icon="Search"
-            class="search-input"
-          ></el-input>
+            type="text"
+          />
         </div>
-        
-        <nav class="project-list">
-          <el-tree
-            :data="projectList"
-            :props="projectTreeProps"
-            node-key="id"
-            :default-expanded-keys="[defaultProjectId]"
-            @node-click="handleProjectClick"
-            class="project-tree"
-          >
-            <template #default="{ node, data }">
-              <div class="project-node">
-                <span>{{ node.label }}</span>
-                <el-tag v-if="data.status" :type="getStatusType(data.status)" size="small" class="status-tag">
-                  {{ data.status }}
-                </el-tag>
-              </div>
-            </template>
-          </el-tree>
-        </nav>
-      </aside>
-
-      <!-- 右侧内容区域 -->
-      <section class="content-area">
-        <!-- 项目详情头部 -->
-        <div class="project-header">
-          <h2 class="project-title">{{ currentProject?.name || '请选择项目' }}</h2>
-          <div class="project-actions">
-            <el-button type="primary" plain>预算管理</el-button>
-            <el-button type="primary" plain>项目配置</el-button>
-            <el-button type="primary" plain>编辑</el-button>
-            <el-button type="danger" plain>删除</el-button>
+      </div>
+      
+      <nav class="flex-1 px-3 space-y-1 overflow-y-auto">
+        <a 
+          v-for="project in projectList" 
+          :key="project.id"
+          :class="[
+            'group flex flex-col p-3 rounded-xl transition-all border-l-4',
+            currentProject?.id === project.id 
+              ? 'bg-blue-50 dark:bg-blue-900/20 border-primary' 
+              : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 border-transparent'
+          ]"
+          href="#"
+          @click.prevent="handleProjectClick(project)"
+        >
+          <div class="flex justify-between items-center mb-1">
+            <span :class="[
+              'font-medium transition-all',
+              currentProject?.id === project.id ? 'font-semibold text-primary' : 'text-slate-700 dark:text-slate-300 group-hover:text-primary'
+            ]">
+              {{ project.label }}
+            </span>
+            <span class="px-2 py-0.5 text-[10px] bg-blue-100 dark:bg-blue-800 text-primary rounded-full">
+              {{ project.status }}
+            </span>
           </div>
+          <span class="text-xs text-slate-500 dark:text-slate-400">
+            {{ project.customer }}
+          </span>
+        </a>
+      </nav>
+      
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800">
+        <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-all">
+          <div class="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-primary font-bold text-sm">
+            {{ username.substring(0, 2).toUpperCase() }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold truncate">{{ username }}</p>
+            <p class="text-[10px] text-slate-500 truncate">admin@chengyan.com</p>
+          </div>
+          <span class="material-symbols-outlined text-slate-400" @click="handleLogout">settings</span>
         </div>
+      </div>
+    </aside>
 
-        <!-- 项目概览卡片 -->
-        <div class="overview-cards">
-          <el-card class="overview-card">
-            <div class="card-content">
-              <div class="card-label">项目类型</div>
-              <div class="card-value">{{ currentProject?.type || '运营类' }}</div>
-            </div>
-          </el-card>
-          <el-card class="overview-card">
-            <div class="card-content">
-              <div class="card-label">合同金额</div>
-              <div class="card-value">¥{{ currentProject?.amount || '5,000,000.00' }}</div>
-            </div>
-          </el-card>
-          <el-card class="overview-card">
-            <div class="card-content">
-              <div class="card-label">合同周期</div>
-              <div class="card-value">{{ currentProject?.contractPeriod || '2026-01-01 ~ 12-31' }}</div>
-            </div>
-          </el-card>
-          <el-card class="overview-card">
-            <div class="card-content">
-              <div class="card-label">客户名称</div>
-              <div class="card-value">{{ currentProject?.customer || '成都研发中心' }}</div>
-            </div>
-          </el-card>
-          <el-card class="overview-card">
-            <div class="card-content">
-              <div class="card-label">立项金额</div>
-              <div class="card-value">¥{{ currentProject?.approvalAmount || '5,000,000.00' }}</div>
-            </div>
-          </el-card>
-          <el-card class="overview-card">
-            <div class="card-content">
-              <div class="card-label">毛利率</div>
-              <div class="card-value">{{ currentProject?.grossMargin || '30.00' }}%</div>
-            </div>
-          </el-card>
+    <!-- 右侧主内容区域 -->
+    <main class="ml-72 flex-1 p-8 pb-20 space-y-8 max-w-[1600px]">
+      <header class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <h2 class="text-2xl font-bold tracking-tight">{{ currentProject?.label || '请选择项目' }}</h2>
+          <span class="px-3 py-1 text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-primary rounded-full border border-blue-100 dark:border-blue-800">
+            {{ currentProject?.status || '进行中' }}
+          </span>
         </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button class="px-4 py-2 text-sm font-medium bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm">
+            <span class="material-symbols-outlined text-slate-400">settings</span> 结算配置
+          </button>
+          <button class="px-4 py-2 text-sm font-medium bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm">
+            <span class="material-symbols-outlined text-slate-400">assignment</span> 立项配置
+          </button>
+          <button class="px-4 py-2 text-sm font-medium bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm">
+            <span class="material-symbols-outlined text-slate-400">edit</span> 编辑
+          </button>
+          <button class="px-4 py-2 text-sm font-medium bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-all flex items-center gap-2 shadow-sm">
+            <span class="material-symbols-outlined">check_circle</span> 结束项目
+          </button>
+          <button class="px-4 py-2 text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all flex items-center gap-2">
+            <span class="material-symbols-outlined">delete</span> 删除
+          </button>
+        </div>
+      </header>
 
-        <!-- 项目详情标签页 -->
-        <el-tabs class="project-tabs">
-          <el-tab-pane label="项目重要事项">
-            <div class="important-matters">
-              <el-table :data="importantMatters" style="width: 100%">
-                <el-table-column prop="title" label="事项" width="200" />
-                <el-table-column prop="date" label="日期" />
-              </el-table>
+      <!-- 项目概览卡片 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div class="bg-card-light dark:bg-card-dark p-5 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800">
+          <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">项目类型</p>
+          <h3 class="text-lg font-bold">{{ currentProject?.type || '运营类' }}</h3>
+        </div>
+        <div class="bg-card-light dark:bg-card-dark p-5 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800">
+          <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">合同金额</p>
+          <h3 class="text-lg font-bold text-red-500">¥{{ currentProject?.amount || '5,000,000.00' }}</h3>
+        </div>
+        <div class="bg-card-light dark:bg-card-dark p-5 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800">
+          <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">合同周期</p>
+          <h3 class="text-sm font-bold">{{ currentProject?.contractPeriod || '2026-01-01 ~ 12-31' }}</h3>
+        </div>
+        <div class="bg-card-light dark:bg-card-dark p-5 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800">
+          <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">客户名称</p>
+          <h3 class="text-lg font-bold truncate">{{ currentProject?.customer || '成都研发中心' }}</h3>
+        </div>
+        <div class="bg-card-light dark:bg-card-dark p-5 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800">
+          <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">立项金额</p>
+          <h3 class="text-lg font-bold text-red-500">¥{{ currentProject?.approvalAmount || '5,000,000.00' }}</h3>
+        </div>
+        <div class="bg-card-light dark:bg-card-dark p-5 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800">
+          <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">立项毛利率</p>
+          <h3 class="text-lg font-bold">{{ currentProject?.grossMargin || '30.00' }}%</h3>
+        </div>
+      </div>
+
+      <!-- 项目重要事项和财务数据分析 -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- 项目重要事项 -->
+        <section class="lg:col-span-1">
+          <div class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 h-full flex flex-col">
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
+              <h3 class="font-bold flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">flag</span> 项目重要事项
+              </h3>
+              <button class="text-xs font-medium text-primary hover:underline">添加</button>
             </div>
-          </el-tab-pane>
-          <el-tab-pane label="财务数据分析">
-            <div class="financial-analysis">
-              <el-row :gutter="20">
-                <el-col :span="8">
-                  <el-card class="financial-card">
-                    <div class="financial-title">当前毛利率</div>
-                    <div class="financial-value negative">¥-501,415.09</div>
-                    <div class="financial-change">-2126.00%</div>
-                  </el-card>
-                </el-col>
-                <el-col :span="8">
-                  <el-card class="financial-card">
-                    <div class="financial-title">目标毛利率</div>
-                    <div class="financial-value">¥-2126.00</div>
-                  </el-card>
-                </el-col>
-                <el-col :span="8">
-                  <el-card class="financial-card">
-                    <div class="financial-title">实际毛利率</div>
-                    <div class="financial-value positive">33.22%</div>
-                  </el-card>
-                </el-col>
-              </el-row>
-            </div>
-          </el-tab-pane>
-          <el-tab-pane label="合同与订单管理">
-            <div class="contract-management">
-              <div class="contract-tabs">
-                <el-tabs>
-                  <el-tab-pane label="合同">
-                    <el-button type="primary" class="add-contract-btn">+ 添加合同</el-button>
-                    <el-table :data="contracts" style="width: 100%">
-                      <el-table-column prop="name" label="合同名称" width="200" />
-                      <el-table-column prop="code" label="合同编号" />
-                      <el-table-column prop="amount" label="合同金额" />
-                      <el-table-column prop="period" label="期限" />
-                      <el-table-column prop="status" label="状态" />
-                      <el-table-column label="操作" width="120">
-                        <template #default>
-                          <el-button size="small" type="primary" plain>查看</el-button>
-                        </template>
-                      </el-table-column>
-                    </el-table>
-                  </el-tab-pane>
-                  <el-tab-pane label="采购合同">
-                    <!-- 采购合同内容 -->
-                  </el-tab-pane>
-                </el-tabs>
+            <div class="flex-1 divide-y divide-slate-100 dark:divide-slate-800">
+              <div class="px-6 py-4 flex items-center justify-between group">
+                <div class="flex items-center gap-3">
+                  <div class="w-1.5 h-1.5 rounded-full bg-red-400"></div>
+                  <span class="text-sm font-medium text-slate-700 dark:text-slate-200">项目启动会议</span>
+                </div>
+                <span class="text-xs text-slate-400">2026-01-05</span>
+              </div>
+              <div class="px-6 py-4 flex items-center justify-between group">
+                <div class="flex items-center gap-3">
+                  <div class="w-1.5 h-1.5 rounded-full bg-red-400"></div>
+                  <span class="text-sm font-medium text-slate-700 dark:text-slate-200">需求评审完成</span>
+                </div>
+                <span class="text-xs text-slate-400">2026-01-20</span>
               </div>
             </div>
-          </el-tab-pane>
-          <el-tab-pane label="项目人员">
-            <div class="project-personnel">
-              <el-button type="primary" class="add-person-btn">+ 添加人员</el-button>
-              <el-table :data="personnel" style="width: 100%">
-                <el-table-column prop="name" label="人员姓名" />
-                <el-table-column prop="department" label="所属部门" />
-                <el-table-column prop="position" label="岗位职级" />
-                <el-table-column prop="costType" label="结算类型" />
-                <el-table-column prop="startDate" label="入场日期" />
-                <el-table-column prop="endDate" label="离场日期" />
-                <el-table-column prop="unitPrice" label="结算单价(日)" />
-                <el-table-column prop="workload" label="工时系数" />
-                <el-table-column prop="status" label="状态" />
-                <el-table-column label="操作" width="120">
-                  <template #default>
-                    <el-button size="small" type="primary" plain>编辑</el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
+          </div>
+        </section>
+
+        <!-- 财务数据分析 -->
+        <section class="lg:col-span-2">
+          <div class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
+              <h3 class="font-bold flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">analytics</span> 财务数据分析
+              </h3>
             </div>
-          </el-tab-pane>
-          <el-tab-pane label="采购">
-            <div class="procurement">
-              <el-button type="primary" class="add-procurement-btn">+ 添加采购</el-button>
-              <el-table :data="procurements" style="width: 100%">
-                <el-table-column prop="item" label="采购事项" />
-                <el-table-column prop="quantity" label="数量" />
-                <el-table-column prop="totalCost" label="费用总价" />
-                <el-table-column prop="usedCost" label="已使用资金" />
-                <el-table-column prop="note" label="采购备注" />
-                <el-table-column label="操作" width="120">
-                  <template #default>
-                    <el-button size="small" type="primary" plain>查看</el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
-              <div class="total-expense">
-                <div class="total-label">Total Expenditure:</div>
-                <div class="total-value">¥25,000.00</div>
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div class="space-y-6">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <p class="text-xs font-medium text-slate-500 mb-1">当前毛利暂估</p>
+                    <h4 class="text-2xl font-bold text-blue-600 dark:text-blue-400">¥ -501,415.09</h4>
+                    <p class="text-[10px] text-slate-400 mt-1">项目整体累计结算金额 / 1.06 - 累计成本</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-xs font-medium text-slate-500 mb-1">当前毛利率暂估</p>
+                    <h4 class="text-2xl font-bold text-green-500">-2126.00%</h4>
+                  </div>
+                </div>
+                <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-start">
+                  <div>
+                    <p class="text-xs font-medium text-slate-500 mb-1">实际毛利</p>
+                    <h4 class="text-xl font-bold text-blue-600 dark:text-blue-400">¥ 261,164.15</h4>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-xs font-medium text-slate-500 mb-1">实际毛利率</p>
+                    <h4 class="text-xl font-bold text-green-500">33.22%</h4>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-xl border border-slate-100 dark:border-slate-800">
+                <p class="text-xs font-medium text-slate-500 mb-2">滚动毛利率暂估</p>
+                <h4 class="text-3xl font-bold text-green-500 mb-3">-2126.00%</h4>
+                <p class="text-[10px] text-slate-400 leading-relaxed">基于人员工时变化与月本数据预估。当前累计结算截止至：2026-02-28</p>
+                <div class="mt-4 grid grid-cols-3 gap-2">
+                  <div class="text-center">
+                    <p class="text-[9px] text-slate-500 uppercase">应结算额</p>
+                    <p class="text-xs font-bold text-blue-600">¥0.00</p>
+                  </div>
+                  <div class="text-center">
+                    <p class="text-[9px] text-slate-500 uppercase">订单结算</p>
+                    <p class="text-xs font-bold text-blue-600">¥0.00</p>
+                  </div>
+                  <div class="text-center">
+                    <p class="text-[9px] text-slate-500 uppercase">毛利产出</p>
+                    <p class="text-xs font-bold text-blue-600">¥0.00</p>
+                  </div>
+                </div>
               </div>
             </div>
-          </el-tab-pane>
-          <el-tab-pane label="部门结算预估(按月)">
-            <div class="department-budget">
-              <el-table :data="departmentBudgets" style="width: 100%">
-                <el-table-column prop="month" label="月份" />
-                <el-table-column prop="personnel" label="人员费用" />
-                <el-table-column prop="totalDays" label="总人天" />
-                <el-table-column prop="personnelCost" label="人员结算" />
-                <el-table-column prop="procurementCost" label="采购结算" />
-                <el-table-column prop="monthlyTotal" label="月度成本总额" />
-              </el-table>
-              <div class="department-total">
-                <div class="total-label">部门成本 合计:</div>
-                <div class="total-value">¥25,000.00</div>
-              </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- 合同与订单管理 -->
+      <section class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
+          <div class="flex items-center gap-6">
+            <h3 class="font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary">description</span> 合同与订单管理
+            </h3>
+            <div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+              <button class="px-3 py-1 text-xs font-medium bg-white dark:bg-slate-700 shadow-sm rounded-md">主合同</button>
+              <button class="px-3 py-1 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700">采购合同</button>
             </div>
-          </el-tab-pane>
-        </el-tabs>
+          </div>
+          <button class="px-3 py-1.5 text-xs font-medium bg-primary text-white rounded-lg flex items-center gap-1 shadow-sm">
+            <span class="material-symbols-outlined text-sm">add</span> 添加合同
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left">
+            <thead class="bg-slate-50/50 dark:bg-slate-900/30 text-slate-500 font-medium">
+              <tr>
+                <th class="px-6 py-3">合同名称</th>
+                <th class="px-6 py-3">合同编号</th>
+                <th class="px-6 py-3 text-right">合同金额</th>
+                <th class="px-6 py-3">周期</th>
+                <th class="px-6 py-3">状态</th>
+                <th class="px-6 py-3 text-center">操作</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+              <tr v-for="(contract, index) in contracts" :key="index">
+                <td class="px-6 py-4 font-medium">{{ contract.name }}</td>
+                <td class="px-6 py-4 text-slate-500 uppercase text-xs">{{ contract.code }}</td>
+                <td class="px-6 py-4 text-red-500 font-semibold text-right">{{ contract.amount }}</td>
+                <td class="px-6 py-4 text-xs">{{ contract.period }}</td>
+                <td class="px-6 py-4">
+                  <span class="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-medium border border-blue-100">
+                    {{ contract.status }}
+                  </span>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex items-center justify-center gap-4">
+                    <button class="text-primary hover:text-blue-700 transition-colors">
+                      <span class="material-symbols-outlined">edit_square</span>
+                    </button>
+                    <button class="text-slate-400 hover:text-red-500 transition-colors">
+                      <span class="material-symbols-outlined">delete</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
-    </div>
+    </main>
 
     <!-- 新建项目对话框 -->
-    <el-dialog
-      v-model="showCreateProjectDialog"
-      title="新建项目"
-      width="500px"
-    >
-      <el-form :model="newProject" :rules="projectRules" ref="projectFormRef">
-        <el-form-item label="项目名称" prop="name">
-          <el-input v-model="newProject.name" placeholder="请输入项目名称"></el-input>
-        </el-form-item>
-        <el-form-item label="合同周期" prop="contractPeriod">
-          <el-date-picker
-            v-model="newProject.contractPeriod"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            style="width: 100%"
-          ></el-date-picker>
-        </el-form-item>
-        <el-form-item label="客户名称" prop="customer">
-          <el-input v-model="newProject.customer" placeholder="请输入客户名称"></el-input>
-        </el-form-item>
-        <el-form-item label="项目类型">
-          <el-select v-model="newProject.type" placeholder="请选择项目类型">
-            <el-option label="运营类" value="运营类"></el-option>
-            <el-option label="开发类" value="开发类"></el-option>
-            <el-option label="咨询类" value="咨询类"></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="合同金额">
-          <el-input v-model="newProject.amount" placeholder="请输入合同金额" type="number"></el-input>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="showCreateProjectDialog = false">取消</el-button>
-          <el-button type="primary" @click="createProject">确定</el-button>
-        </span>
-      </template>
-    </el-dialog>
+    <div v-if="showCreateProjectDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div class="bg-white dark:bg-card-dark rounded-lg shadow-xl w-full max-w-md p-6">
+        <h3 class="text-lg font-semibold mb-4">新建项目</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">项目名称</label>
+            <input 
+              v-model="newProject.name"
+              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              placeholder="请输入项目名称"
+              type="text"
+            />
+            <p v-if="errors.name" class="text-xs text-red-500 mt-1">{{ errors.name }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">合同周期</label>
+            <input 
+              v-model="newProject.contractPeriod"
+              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              placeholder="YYYY-MM-DD ~ YYYY-MM-DD"
+              type="text"
+            />
+            <p v-if="errors.contractPeriod" class="text-xs text-red-500 mt-1">{{ errors.contractPeriod }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">客户名称</label>
+            <input 
+              v-model="newProject.customer"
+              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              placeholder="请输入客户名称"
+              type="text"
+            />
+            <p v-if="errors.customer" class="text-xs text-red-500 mt-1">{{ errors.customer }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">项目类型</label>
+            <select 
+              v-model="newProject.type"
+              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+            >
+              <option value="运营类">运营类</option>
+              <option value="开发类">开发类</option>
+              <option value="咨询类">咨询类</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">合同金额</label>
+            <input 
+              v-model="newProject.amount"
+              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              placeholder="请输入合同金额"
+              type="number"
+            />
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-6">
+          <button 
+            class="px-4 py-2 text-sm font-medium border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+            @click="showCreateProjectDialog = false"
+          >
+            取消
+          </button>
+          <button 
+            class="px-4 py-2 text-sm font-medium bg-primary hover:bg-blue-600 text-white rounded-md transition-all"
+            @click="createProject"
+          >
+            确定
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, Setting } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const username = ref('')
 const searchQuery = ref('')
 const showCreateProjectDialog = ref(false)
-const projectFormRef = ref()
 
 // 项目数据
 const projectList = ref([
   {
     id: 1,
-    label: '运营管理系统',
+    label: '成研运营项目管理系统',
     status: '进行中',
     type: '运营类',
     amount: '5,000,000.00',
@@ -300,130 +368,41 @@ const projectList = ref([
   {
     id: 2,
     label: '数据中心外包服务',
-    status: '已完成',
+    status: '进行中',
     type: '服务类',
     amount: '3,000,000.00',
     contractPeriod: '2025-01-01 ~ 12-31',
-    customer: '北京总部',
+    customer: '四川电信',
     approvalAmount: '3,000,000.00',
     grossMargin: '25.00'
   }
 ])
 
-const defaultProjectId = ref(1)
 const currentProject = ref(projectList.value[0])
-
-// 项目树配置
-const projectTreeProps = {
-  label: 'label'
-}
 
 // 新建项目表单
 const newProject = reactive({
   name: '',
-  contractPeriod: null,
+  contractPeriod: '',
   customer: '',
   type: '运营类',
   amount: ''
 })
 
-const projectRules = {
-  name: [
-    { required: true, message: '请输入项目名称', trigger: 'blur' }
-  ],
-  contractPeriod: [
-    { required: true, message: '请选择合同周期', trigger: 'change' }
-  ],
-  customer: [
-    { required: true, message: '请输入客户名称', trigger: 'blur' }
-  ]
-}
+const errors = reactive({
+  name: '',
+  contractPeriod: '',
+  customer: ''
+})
 
 // 模拟数据
-const importantMatters = ref([
-  { title: '项目启动会议', date: '2026-01-05' },
-  { title: '需求评审', date: '2026-01-20' }
-])
-
 const contracts = ref([
   {
     name: '成研运营项目管理系统合同',
-    code: 'CY20260001',
+    code: 'CY2026001',
     amount: '¥5,000,000.00',
-    period: '2026-01-01 ~ 12-31',
+    period: '2026-01-01 / 12-31',
     status: '已生效'
-  }
-])
-
-const personnel = ref([
-  {
-    name: '张明',
-    department: '技术部/开发组',
-    position: '前端开发(高级)',
-    costType: '实报实销',
-    startDate: '2026-01-01',
-    endDate: '持续中',
-    unitPrice: '¥800.00',
-    workload: '1.0',
-    status: '在职'
-  },
-  {
-    name: '李四',
-    department: '技术部/开发组',
-    position: '后端开发(中级)',
-    costType: '实报实销',
-    startDate: '2026-01-15',
-    endDate: '持续中',
-    unitPrice: '¥600.00',
-    workload: '1.0',
-    status: '在职'
-  },
-  {
-    name: '王丽',
-    department: '设计部/设计组',
-    position: 'UI设计(中级)',
-    costType: '固定成本',
-    startDate: '2026-02-01',
-    endDate: '2026-12-31',
-    unitPrice: '¥500.00',
-    workload: '0.8',
-    status: '在职'
-  }
-])
-
-const procurements = ref([
-  {
-    item: '服务器采购(云服务端)',
-    quantity: '2',
-    totalCost: '¥20,000.00',
-    usedCost: '¥0.00',
-    note: '0.5核2G/万可扩展'
-  },
-  {
-    item: '软件开发(开发工具包)',
-    quantity: '5',
-    totalCost: '¥5,000.00',
-    usedCost: '¥5,000.00',
-    note: '企业版/2年许可'
-  }
-])
-
-const departmentBudgets = ref([
-  {
-    month: '2026-01',
-    personnel: '新入职人员入职',
-    totalDays: '0.00',
-    personnelCost: '¥0.00',
-    procurementCost: '¥20,000.00',
-    monthlyTotal: '¥20,000.00'
-  },
-  {
-    month: '2026-02',
-    personnel: '新入职人员/总人数',
-    totalDays: '0.00',
-    personnelCost: '¥0.00',
-    procurementCost: '¥5,000.00',
-    monthlyTotal: '¥5,000.00'
   }
 ])
 
@@ -432,7 +411,9 @@ onMounted(() => {
   const userStr = localStorage.getItem('user')
   if (userStr) {
     const user = JSON.parse(userStr)
-    username.value = user.username
+    username.value = user.username || 'Admin User'
+  } else {
+    username.value = 'Admin User'
   }
 })
 
@@ -445,354 +426,62 @@ const handleLogout = () => {
   router.push('/login')
 }
 
-const handleProjectClick = (data: any) => {
-  currentProject.value = data
+const handleProjectClick = (project: any) => {
+  currentProject.value = project
 }
 
-const getStatusType = (status: string) => {
-  switch (status) {
-    case '进行中': return 'success'
-    case '已完成': return 'info'
-    case '已暂停': return 'warning'
-    case '已取消': return 'danger'
-    default: return 'default'
-  }
-}
-
-const createProject = async () => {
-  if (!projectFormRef.value) return
+const createProject = () => {
+  // 表单验证
+  let isValid = true
   
-  await projectFormRef.value.validate(async (valid: boolean) => {
-    if (valid) {
-      // 模拟创建项目
-      const newProjectData = {
-        id: projectList.value.length + 1,
-        label: newProject.name,
-        status: '进行中',
-        type: newProject.type,
-        amount: newProject.amount,
-        contractPeriod: newProject.contractPeriod ? `${newProject.contractPeriod[0]} ~ ${newProject.contractPeriod[1]}` : '',
-        customer: newProject.customer,
-        approvalAmount: newProject.amount,
-        grossMargin: '0.00'
-      }
-      
-      projectList.value.push(newProjectData)
-      showCreateProjectDialog.value = false
-      
-      // 重置表单
-      Object.assign(newProject, {
-        name: '',
-        contractPeriod: null,
-        customer: '',
-        type: '运营类',
-        amount: ''
-      })
-      
-      ElMessage.success('项目创建成功')
-    }
+  if (!newProject.name) {
+    errors.name = '请输入项目名称'
+    isValid = false
+  } else {
+    errors.name = ''
+  }
+  
+  if (!newProject.contractPeriod) {
+    errors.contractPeriod = '请输入合同周期'
+    isValid = false
+  } else {
+    errors.contractPeriod = ''
+  }
+  
+  if (!newProject.customer) {
+    errors.customer = '请输入客户名称'
+    isValid = false
+  } else {
+    errors.customer = ''
+  }
+  
+  if (!isValid) return
+  
+  // 模拟创建项目
+  const newProjectData = {
+    id: projectList.value.length + 1,
+    label: newProject.name,
+    status: '进行中',
+    type: newProject.type,
+    amount: newProject.amount,
+    contractPeriod: newProject.contractPeriod,
+    customer: newProject.customer,
+    approvalAmount: newProject.amount,
+    grossMargin: '0.00'
+  }
+  
+  projectList.value.push(newProjectData)
+  showCreateProjectDialog.value = false
+  
+  // 重置表单
+  Object.assign(newProject, {
+    name: '',
+    contractPeriod: '',
+    customer: '',
+    type: '运营类',
+    amount: ''
   })
+  
+  ElMessage.success('项目创建成功')
 }
 </script>
-
-<style scoped>
-.home-container {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: #f5f7fa;
-}
-
-/* 顶部导航栏 */
-.top-nav {
-  height: 60px;
-  background-color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.app-title {
-  font-size: 18px;
-  font-weight: bold;
-  color: #1890ff;
-  margin: 0;
-}
-
-.nav-right {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.welcome-text {
-  font-size: 14px;
-  color: #666;
-}
-
-/* 主内容区域 */
-.main-content {
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-}
-
-/* 侧边栏 */
-.sidebar {
-  width: 280px;
-  background-color: #fff;
-  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
-  height: calc(100vh - 60px);
-  display: flex;
-  flex-direction: column;
-  padding: 20px;
-  overflow-y: auto;
-}
-
-.sidebar-header {
-  margin-bottom: 20px;
-}
-
-.new-project-btn {
-  width: 100%;
-}
-
-.search-box {
-  margin-bottom: 20px;
-}
-
-.search-input {
-  width: 100%;
-}
-
-.project-list {
-  flex: 1;
-}
-
-.project-tree {
-  border: none;
-}
-
-.project-node {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-}
-
-.status-tag {
-  margin-left: 10px;
-}
-
-/* 内容区域 */
-.content-area {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
-  background-color: #f5f7fa;
-}
-
-/* 项目详情头部 */
-.project-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.project-title {
-  font-size: 20px;
-  font-weight: bold;
-  color: #333;
-  margin: 0;
-}
-
-.project-actions {
-  display: flex;
-  gap: 10px;
-}
-
-/* 概览卡片 */
-.overview-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.overview-card {
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.card-content {
-  text-align: center;
-  padding: 16px 0;
-}
-
-.card-label {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 8px;
-}
-
-.card-value {
-  font-size: 18px;
-  font-weight: bold;
-  color: #333;
-}
-
-/* 项目标签页 */
-.project-tabs {
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-/* 重要事项 */
-.important-matters {
-  padding: 20px;
-}
-
-/* 财务分析 */
-.financial-analysis {
-  padding: 20px;
-}
-
-.financial-card {
-  text-align: center;
-}
-
-.financial-title {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 12px;
-}
-
-.financial-value {
-  font-size: 20px;
-  font-weight: bold;
-  margin-bottom: 8px;
-}
-
-.financial-value.positive {
-  color: #52c41a;
-}
-
-.financial-value.negative {
-  color: #f5222d;
-}
-
-.financial-change {
-  font-size: 14px;
-  color: #f5222d;
-}
-
-/* 合同管理 */
-.contract-management {
-  padding: 20px;
-}
-
-.add-contract-btn {
-  margin-bottom: 16px;
-}
-
-/* 项目人员 */
-.project-personnel {
-  padding: 20px;
-}
-
-.add-person-btn {
-  margin-bottom: 16px;
-}
-
-/* 采购 */
-.procurement {
-  padding: 20px;
-}
-
-.add-procurement-btn {
-  margin-bottom: 16px;
-}
-
-.total-expense {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #e8e8e8;
-}
-
-.total-label {
-  font-weight: bold;
-  margin-right: 10px;
-}
-
-.total-value {
-  font-weight: bold;
-  color: #f5222d;
-}
-
-/* 部门预算 */
-.department-budget {
-  padding: 20px;
-}
-
-.department-total {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #e8e8e8;
-}
-
-/* 响应式设计 */
-@media (max-width: 1200px) {
-  .sidebar {
-    width: 240px;
-  }
-  
-  .overview-cards {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  }
-}
-
-@media (max-width: 768px) {
-  .main-content {
-    flex-direction: column;
-  }
-  
-  .sidebar {
-    width: 100%;
-    height: auto;
-    max-height: 300px;
-  }
-  
-  .project-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  
-  .project-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-  
-  .overview-cards {
-    grid-template-columns: 1fr;
-  }
-}
-</style>
