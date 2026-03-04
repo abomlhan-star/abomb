@@ -3,7 +3,7 @@
     <!-- 顶部导航栏 -->
     <header class="top-nav">
       <div class="nav-left">
-        <h1 class="app-title">成研运营项目管理系统</h1>
+        <h1 class="app-title">成研运营项目管理</h1>
       </div>
       <div class="nav-right">
         <span class="welcome-text">欢迎，{{ username }}</span>

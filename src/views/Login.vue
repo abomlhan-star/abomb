@@ -11,7 +11,7 @@
       <div class="glass-card p-8 md:p-12 rounded-3xl shadow-2xl transition-all duration-500 hover:border-primary/40">
         <div class="text-center mb-10">
           <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-white mb-3 text-glow">
-            成研运营项目管理系统
+            成研运营项目管理
           </h1>
           <p class="text-slate-300/80 text-sm md:text-base font-medium">
             请登录以进入系统
@@ -20,13 +20,10 @@
         
         <form class="space-y-6" @submit.prevent="handleLogin">
           <div class="space-y-1">
-            <div class="relative group">
-              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">
-                <span class="material-icons text-[20px]">person</span>
-              </span>
+            <div class="group">
               <input 
                 v-model="loginForm.username"
-                class="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all input-glow"
+                class="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-4 pr-4 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all input-glow"
                 placeholder="请输入用户名"
                 type="text"
               />
@@ -37,13 +34,10 @@
           </div>
           
           <div class="space-y-1">
-            <div class="relative group">
-              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">
-                <span class="material-icons text-[20px]">lock</span>
-              </span>
+            <div class="group">
               <input 
                 v-model="loginForm.password"
-                class="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all input-glow"
+                class="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-4 pr-4 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all input-glow"
                 placeholder="请输入密码"
                 type="password"
               />
@@ -80,7 +74,7 @@
         
         <div class="mt-10 pt-8 border-t border-white/10 flex flex-col items-center space-y-4">
           <p class="text-slate-400 text-sm">
-            © 2026 成研运营项目管理系统
+            © 2026 成研运营项目管理
           </p>
         </div>
       </div>
