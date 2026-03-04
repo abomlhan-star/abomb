@@ -2,7 +2,7 @@
   <div class="login-container">
     <div class="login-form-wrapper">
       <div class="login-header">
-        <h2 class="login-title">城盐运营系统</h2>
+        <h2 class="login-title">成研运营项目管理系统</h2>
         <p class="login-subtitle">请登录以进入系统</p>
       </div>
       
