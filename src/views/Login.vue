@@ -1,85 +1,80 @@
 <template>
-  <div class="fixed inset-0 z-0 bg-tech-gradient">
-    <div class="absolute inset-0 mesh-bg opacity-50"></div>
-    <div class="absolute inset-0" style="background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 40px 40px;"></div>
-    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[100px] animate-pulse-slow"></div>
-    <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px] animate-pulse-slow" style="animation-delay: 1.5s;"></div>
-  </div>
-  
-  <main class="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
-    <div class="w-full max-w-md">
-      <div class="glass-card p-8 md:p-12 rounded-3xl shadow-2xl transition-all duration-500 hover:border-primary/40">
+  <div class="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-900 flex items-center justify-center px-4">
+    <!-- 背景装饰 -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+      <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-[100px]"></div>
+      <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-[100px]"></div>
+      <div class="absolute inset-0" style="background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 40px 40px;"></div>
+    </div>
+    
+    <!-- 登录卡片 -->
+    <div class="relative z-10 w-full max-w-md">
+      <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 md:p-12 shadow-2xl">
         <div class="text-center mb-10">
-          <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-white mb-3 text-glow">
+          <h1 class="text-3xl md:text-4xl font-bold text-white mb-3">
             成研运营项目管理
           </h1>
-          <p class="text-slate-300/80 text-sm md:text-base font-medium">
+          <p class="text-purple-200 text-sm md:text-base font-medium">
             请登录以进入系统
           </p>
         </div>
         
         <form class="space-y-6" @submit.prevent="handleLogin">
           <div class="space-y-1">
-            <div class="group">
-              <input 
-                v-model="loginForm.username"
-                class="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-4 pr-4 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all input-glow"
-                placeholder="请输入用户名"
-                type="text"
-              />
-            </div>
-            <p v-if="errors.username" class="text-[11px] text-red-400/80 mt-1">
+            <input 
+              v-model="loginForm.username"
+              class="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 px-4 text-white placeholder-purple-300/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
+              placeholder="请输入用户名"
+              type="text"
+            />
+            <p v-if="errors.username" class="text-red-400 text-xs mt-1">
               {{ errors.username }}
             </p>
           </div>
           
           <div class="space-y-1">
-            <div class="group">
-              <input 
-                v-model="loginForm.password"
-                class="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-4 pr-4 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all input-glow"
-                placeholder="请输入密码"
-                type="password"
-              />
-            </div>
-            <p v-if="errors.password" class="text-[11px] text-red-400/80 mt-1">
+            <input 
+              v-model="loginForm.password"
+              class="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 px-4 text-white placeholder-purple-300/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
+              placeholder="请输入密码"
+              type="password"
+            />
+            <p v-if="errors.password" class="text-red-400 text-xs mt-1">
               {{ errors.password }}
             </p>
           </div>
           
           <div class="flex items-center justify-between text-sm">
-            <label class="flex items-center cursor-pointer group">
-              <div class="relative flex items-center">
-                <input 
-                  v-model="loginForm.remember"
-                  class="peer h-4 w-4 rounded border-white/20 bg-white/5 text-primary focus:ring-primary/50 focus:ring-offset-0 transition-all"
-                  type="checkbox"
-                />
-              </div>
-              <span class="ml-2 text-slate-300 group-hover:text-white transition-colors">记住密码</span>
+            <label class="flex items-center cursor-pointer text-purple-200 hover:text-white transition-colors">
+              <input 
+                v-model="loginForm.remember"
+                class="mr-2 h-4 w-4 rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500/50"
+                type="checkbox"
+              />
+              记住密码
             </label>
-            <a class="text-primary hover:text-blue-400 transition-colors font-medium" href="#">
+            <a class="text-purple-300 hover:text-white transition-colors font-medium" href="#">
               忘记密码？
             </a>
           </div>
           
           <button 
             :disabled="loading"
-            class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-900/40 hover:shadow-blue-500/30 transition-all duration-300 transform hover:-translate-y-0.5 active:scale-[0.98] animate-glow"
+            class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-purple-900/50 hover:shadow-purple-500/30 transition-all duration-300 transform hover:-translate-y-0.5 active:scale-[0.98]"
             type="submit"
           >
             {{ loading ? '登录中...' : '登 录' }}
           </button>
         </form>
         
-        <div class="mt-10 pt-8 border-t border-white/10 flex flex-col items-center space-y-4">
-          <p class="text-slate-400 text-sm">
+        <div class="mt-10 pt-8 border-t border-white/10 text-center">
+          <p class="text-purple-300 text-sm">
             © 2026 成研运营项目管理
           </p>
         </div>
       </div>
     </div>
-  </main>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -102,7 +97,6 @@ const errors = reactive({
 })
 
 const handleLogin = async () => {
-  // 表单验证
   let isValid = true
   
   if (!loginForm.username) {
@@ -123,11 +117,36 @@ const handleLogin = async () => {
   
   loading.value = true
   try {
-    // 模拟登录API调用
     setTimeout(() => {
-      // 模拟登录成功
+      const systemUsers = localStorage.getItem('system_users')
+      let userEmail = 'admin@chengyan.com'
+      let userRole = 'admin'
+      let loginSuccess = false
+      
+      if (systemUsers) {
+        const users = JSON.parse(systemUsers)
+        const user = users.find((u: any) => u.account === loginForm.username && u.password === loginForm.password)
+        if (user) {
+          userEmail = user.email
+          userRole = user.role || 'project_manager'
+          loginSuccess = true
+        }
+      } else if (loginForm.username === 'admin' && loginForm.password === 'richinfo@123') {
+        loginSuccess = true
+      }
+      
+      if (!loginSuccess) {
+        ElMessage.error('用户名或密码错误')
+        loading.value = false
+        return
+      }
+      
       localStorage.setItem('token', 'mock-token-123456')
-      localStorage.setItem('user', JSON.stringify({ username: loginForm.username }))
+      localStorage.setItem('user', JSON.stringify({ 
+        username: loginForm.username,
+        email: userEmail,
+        role: userRole
+      }))
       
       ElMessage.success('登录成功')
       router.push('/')
@@ -139,62 +158,3 @@ const handleLogin = async () => {
   }
 }
 </script>
-
-<style scoped>
-.glass-card {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.dark .glass-card {
-  background: rgba(15, 23, 42, 0.4);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-}
-
-.text-glow {
-  text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
-}
-
-.input-glow:focus {
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
-}
-
-.mesh-bg {
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0, transparent 50%), 
-    radial-gradient(at 50% 0%, rgba(139, 92, 246, 0.15) 0, transparent 50%), 
-    radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.15) 0, transparent 50%);
-}
-
-.bg-tech-gradient {
-  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 25%, #4c1d95 50%, #1e1b4b 100%);
-}
-
-@keyframes pulse-slow {
-  0%, 100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 0.8;
-  }
-}
-
-@keyframes glow-pulse {
-  0%, 100% {
-    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
-  }
-  50% {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
-  }
-}
-
-.animate-pulse-slow {
-  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-.animate-glow {
-  animation: glow-pulse 2s infinite ease-in-out;
-}
-</style>

@@ -13,6 +13,24 @@ const routes = [
     meta: {
       requiresAuth: true
     }
+  },
+  {
+    path: '/management',
+    component: () => import('../views/management/ManagementLayout.vue'),
+    meta: {
+      requiresAuth: true
+    },
+    children: [
+      {
+        path: '',
+        redirect: '/management/users'
+      },
+      {
+        path: 'users',
+        name: 'users',
+        component: () => import('../views/management/UserManagement.vue')
+      }
+    ]
   }
 ]
 

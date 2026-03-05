@@ -58,13 +58,27 @@
       <div class="p-4 border-t border-slate-200 dark:border-slate-800">
         <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-all">
           <div class="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-primary font-bold text-sm">
-            {{ username.substring(0, 2).toUpperCase() }}
+            {{ userDisplayName.substring(0, 2).toUpperCase() }}
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold truncate">{{ username }}</p>
-            <p class="text-[10px] text-slate-500 truncate">admin@chengyan.com</p>
+            <p class="text-sm font-semibold truncate">{{ userDisplayName }}</p>
+            <p class="text-[10px] text-slate-500 truncate">{{ userEmail }}</p>
           </div>
-          <span class="material-symbols-outlined text-slate-400" @click="handleLogout">settings</span>
+          <el-dropdown trigger="click" placement="top-end">
+            <span class="material-symbols-outlined text-slate-400 cursor-pointer hover:text-primary transition-colors">settings</span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item v-if="isAdmin" @click="handleEnterManagement">
+                  <span class="material-symbols-outlined text-sm mr-2">admin_panel_settings</span>
+                  进入管理
+                </el-dropdown-item>
+                <el-dropdown-item :divided="isAdmin" @click="handleLogout">
+                  <span class="material-symbols-outlined text-sm mr-2 text-red-500">logout</span>
+                  <span class="text-red-500">退出系统</span>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
       </div>
     </aside>
@@ -1351,7 +1365,15 @@ import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const username = ref('')
+const userDisplayName = ref('')
+const userEmail = ref('')
+const userRole = ref('')
 const searchQuery = ref('')
+
+// 计算属性：是否为系统管理员
+const isAdmin = computed(() => {
+  return userRole.value === 'admin'
+})
 const showCreateProjectDialog = ref(false)
 const showSettlementConfigDialog = ref(false)
 const showEditProjectDialog = ref(false)
@@ -1654,13 +1676,45 @@ const editErrors = reactive({
 onMounted(() => {
   // 从localStorage获取用户信息
   const userStr = localStorage.getItem('user')
+  let loginAccount = ''
   if (userStr) {
     const user = JSON.parse(userStr)
+    loginAccount = user.username || ''
     username.value = user.username || 'Admin User'
+    userEmail.value = user.email || 'admin@chengyan.com'
+    userRole.value = user.role || 'admin'
   } else {
     username.value = 'Admin User'
+    userEmail.value = 'admin@chengyan.com'
+    userRole.value = 'admin'
+  }
+  
+  // 从系统用户数据中查找用户的显示姓名、邮箱和角色
+  const systemUsers = localStorage.getItem('system_users')
+  if (systemUsers) {
+    const users = JSON.parse(systemUsers)
+    const currentUser = users.find((u: any) => u.account === loginAccount || u.account === username.value)
+    if (currentUser) {
+      // 显示后台管理系统中配置的姓名
+      userDisplayName.value = currentUser.name || currentUser.account
+      if (currentUser.email) {
+        userEmail.value = currentUser.email
+      }
+      if (currentUser.role) {
+        userRole.value = currentUser.role
+      }
+    } else {
+      userDisplayName.value = username.value
+    }
+  } else {
+    userDisplayName.value = username.value
   }
 })
+
+const handleEnterManagement = () => {
+  // 进入管理页面
+  router.push('/management')
+}
 
 const handleLogout = () => {
   // 清除localStorage中的token和用户信息
