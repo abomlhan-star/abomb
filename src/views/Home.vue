@@ -128,7 +128,7 @@
         </div>
         <div class="bg-card-light dark:bg-card-dark p-5 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800">
           <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">合同周期</p>
-          <h3 class="text-sm font-bold">{{ currentProject?.contractPeriod || '2026-01-01 ~ 12-31' }}</h3>
+          <h3 class="text-sm font-bold">{{ formatContractPeriod(currentProject?.contractPeriod) }}</h3>
         </div>
         <div class="bg-card-light dark:bg-card-dark p-5 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800">
           <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">客户名称</p>
@@ -544,9 +544,9 @@
               </template>
             </el-table-column>
             <el-table-column
-              v-for="month in months"
-              :key="month"
-              :label="month + '月'"
+              v-for="m in months"
+              :key="m.key"
+              :label="m.label"
               width="75"
               align="right"
             >
@@ -554,16 +554,16 @@
                 <div class="relative">
                   <span 
                     class="font-semibold cursor-pointer hover:text-primary transition-colors"
-                    @click="showWorkDayInput(row, month)"
+                    @click="showWorkDayInput(row, m)"
                   >
-                    {{ row.workDays && row.workDays[month] ? row.workDays[month] : calculateMonthlyWorkDays(row, month) }}
+                    {{ row.workDays && row.workDays[m.key] ? row.workDays[m.key] : calculateMonthlyWorkDays(row, m) }}
                   </span>
                   <el-input
-                    v-if="editingCell === `${row.name}-${month}`"
+                    v-if="editingCell === `${row.name}-${m.key}`"
                     v-model="editValue"
                     size="small"
-                    @blur="saveWorkDay(row, month)"
-                    @keyup.enter="saveWorkDay(row, month)"
+                    @blur="saveWorkDay(row, m)"
+                    @keyup.enter="saveWorkDay(row, m)"
                     @keyup.esc="cancelEdit"
                     class="absolute top-0 left-0 w-full"
                     ref="inputRef"
@@ -603,6 +603,91 @@
           </div>
         </div>
       </section>
+
+      <!-- 项目结算暂估 -->
+      <section 
+        class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden"
+        style="width: 1280px;"
+      >
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/20">
+          <h3 class="font-bold flex items-center gap-2">
+            <el-icon class="text-primary"><DataAnalysis /></el-icon> 项目结算暂估
+          </h3>
+          <div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+            <button 
+              class="px-3 py-1 text-xs font-medium rounded-md transition-all"
+              :class="showSettlementTaxPrice ? 'bg-white dark:bg-slate-700 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'"
+              @click="showSettlementTaxPrice = true"
+            >含税金额</button>
+            <button 
+              class="px-3 py-1 text-xs font-medium rounded-md transition-all"
+              :class="!showSettlementTaxPrice ? 'bg-white dark:bg-slate-700 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'"
+              @click="showSettlementTaxPrice = false"
+            >不含税金额</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <el-table
+            :data="departmentSettlementList"
+            border
+            stripe
+            :row-class-name="({ row }) => row.isTotal ? 'bg-blue-50 dark:bg-blue-900/20 font-bold' : (row.isDeptTotal ? 'bg-slate-50 dark:bg-slate-800/50' : '')"
+          >
+            <el-table-column
+              prop="dept"
+              label="部门"
+              width="120"
+              fixed="left"
+            >
+              <template #default="{ row }">
+                <span :class="row.isTotal ? 'font-bold' : 'font-medium'">{{ row.dept }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="level"
+              label="人员等级"
+              width="100"
+            >
+              <template #default="{ row }">
+                <span :class="row.isDeptTotal ? 'font-medium text-slate-600' : ''">{{ row.level || '-' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="count"
+              label="人员数量"
+              width="90"
+              align="right"
+            >
+              <template #default="{ row }">
+                <span :class="row.isTotal || row.isDeptTotal ? 'font-bold' : 'font-medium'">{{ row.count }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column
+              v-for="m in months"
+              :key="m.key"
+              :label="m.label"
+              width="85"
+              align="right"
+            >
+              <template #default="{ row }">
+                <span :class="row.isTotal || row.isDeptTotal ? 'font-bold' : 'font-medium'">¥{{ formatNumber(row.monthlyTotals[m.key] || 0) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column
+              :label="'累计金额(' + (showSettlementTaxPrice ? '含税' : '不含税') + ')'"
+              width="130"
+              align="right"
+              fixed="right"
+            >
+              <template #default="{ row }">
+                <span :class="[row.isTotal ? 'font-bold text-red-500' : (row.isDeptTotal ? 'font-bold text-primary' : 'font-medium text-slate-700 dark:text-slate-200')]">¥{{ formatNumber(row.totalAmount) }}</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </section>
+
+
     </main>
 
     <!-- 新建项目对话框 -->
@@ -622,11 +707,14 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">合同周期</label>
-            <input 
+            <el-date-picker
               v-model="newProject.contractPeriod"
-              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-              placeholder="YYYY-MM-DD ~ YYYY-MM-DD"
-              type="text"
+              type="daterange"
+              range-separator="~"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              value-format="YYYY-MM-DD"
+              class="w-full"
             />
             <p v-if="errors.contractPeriod" class="text-xs text-red-500 mt-1">{{ errors.contractPeriod }}</p>
           </div>
@@ -792,11 +880,14 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">合同周期</label>
-            <input 
+            <el-date-picker
               v-model="editProject.contractPeriod"
-              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-              placeholder="YYYY-MM-DD ~ YYYY-MM-DD"
-              type="text"
+              type="daterange"
+              range-separator="~"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              value-format="YYYY-MM-DD"
+              class="w-full"
             />
             <p v-if="editErrors.contractPeriod" class="text-xs text-red-500 mt-1">{{ editErrors.contractPeriod }}</p>
           </div>
@@ -1398,8 +1489,11 @@ const showAddPersonDialog = ref(false)
 const isEditingPerson = ref(false)
 const currentPersonIndex = ref(-1)
 const showTaxPrice = ref(true)
+const showSettlementTaxPrice = ref(true)
 const personSearchQuery = ref('')
 const selectedDept = ref('')
+
+
 
 // 计算所有唯一的部门
 const departments = computed(() => {
@@ -1430,8 +1524,46 @@ const inputRef = ref(null)
 const isFullscreen = ref(false)
 const fullscreenRef = ref(null)
 
-// 月份数组（1-12月）
-const months = ref([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+// 根据合同周期动态计算月份列表（支持跨年）
+const months = computed(() => {
+  const contractPeriod = currentProject.value?.contractPeriod || '2026-01-01 ~ 2026-12-31'
+  const [startStr, endStr] = contractPeriod.split(' ~ ')
+  
+  let startDate = new Date(startStr)
+  let endDateStr = endStr
+  
+  // 如果结束日期没有年份，添加开始日期的年份
+  if (endStr && (endStr.indexOf('-') === 2 || endStr.length === 5)) {
+    const year = startDate.getFullYear()
+    endDateStr = `${year}-${endStr}`
+  }
+  let endDate = new Date(endDateStr)
+  
+  const monthList: { year: number; month: number; label: string; key: string }[] = []
+  
+  let currentYear = startDate.getFullYear()
+  let currentMonth = startDate.getMonth() + 1
+  const endYear = endDate.getFullYear()
+  const endMonth = endDate.getMonth() + 1
+  
+  while (currentYear < endYear || (currentYear === endYear && currentMonth <= endMonth)) {
+    const yearShort = currentYear.toString().substring(2)
+    monthList.push({
+      year: currentYear,
+      month: currentMonth,
+      label: `${yearShort}年${currentMonth}月`,
+      key: `${currentYear}-${currentMonth}`
+    })
+    
+    currentMonth++
+    if (currentMonth > 12) {
+      currentMonth = 1
+      currentYear++
+    }
+  }
+  
+  return monthList
+})
 
 // 项目数据
 const projectList = ref([
@@ -1476,7 +1608,7 @@ const currentProject = ref(projectList.value[0])
 // 新建项目表单
 const newProject = reactive({
   name: '',
-  contractPeriod: '',
+  contractPeriod: [] as string[],
   customer: '',
   type: '运营类',
   amount: ''
@@ -1665,7 +1797,7 @@ const contractForm = reactive({
 // 编辑项目表单
 const editProject = reactive({
   name: '',
-  contractPeriod: '',
+  contractPeriod: [] as string[],
   customer: '',
   type: '运营类',
   amount: '',
@@ -1739,7 +1871,19 @@ const handleEditProject = () => {
   if (currentProject.value) {
     // 填充编辑表单
     editProject.name = currentProject.value.label || ''
-    editProject.contractPeriod = currentProject.value.contractPeriod || ''
+    
+    // 解析合同周期字符串为数组
+    const periodStr = currentProject.value.contractPeriod || ''
+    if (periodStr && periodStr.includes(' ~ ')) {
+      const parts = periodStr.split(' ~ ')
+      if (parts.length === 2) {
+        // 直接使用完整日期
+        editProject.contractPeriod = [parts[0], parts[1]]
+      }
+    } else {
+      editProject.contractPeriod = []
+    }
+    
     editProject.customer = currentProject.value.customer || ''
     editProject.type = currentProject.value.type || '运营类'
     editProject.amount = currentProject.value.amount || ''
@@ -1769,8 +1913,8 @@ const updateProject = () => {
     editErrors.name = ''
   }
   
-  if (!editProject.contractPeriod) {
-    editErrors.contractPeriod = '请输入合同周期'
+  if (!editProject.contractPeriod || editProject.contractPeriod.length !== 2) {
+    editErrors.contractPeriod = '请选择合同周期'
     isValid = false
   } else {
     editErrors.contractPeriod = ''
@@ -1785,6 +1929,9 @@ const updateProject = () => {
   
   if (!isValid) return
   
+  // 格式化合同周期（保留完整日期）
+  const contractPeriodStr = `${editProject.contractPeriod[0]} ~ ${editProject.contractPeriod[1]}`
+  
   // 找到并更新项目
   const projectIndex = projectList.value.findIndex(p => p.id === currentProject.value?.id)
   if (projectIndex !== -1) {
@@ -1793,7 +1940,7 @@ const updateProject = () => {
       label: editProject.name,
       type: editProject.type,
       amount: editProject.amount,
-      contractPeriod: editProject.contractPeriod,
+      contractPeriod: contractPeriodStr,
       customer: editProject.customer
     }
     
@@ -1816,8 +1963,8 @@ const createProject = () => {
     errors.name = ''
   }
   
-  if (!newProject.contractPeriod) {
-    errors.contractPeriod = '请输入合同周期'
+  if (!newProject.contractPeriod || newProject.contractPeriod.length !== 2) {
+    errors.contractPeriod = '请选择合同周期'
     isValid = false
   } else {
     errors.contractPeriod = ''
@@ -1832,6 +1979,9 @@ const createProject = () => {
   
   if (!isValid) return
   
+  // 格式化合同周期（保留完整日期）
+  const contractPeriodStr = `${newProject.contractPeriod[0]} ~ ${newProject.contractPeriod[1]}`
+  
   // 模拟创建项目
   const newProjectData = {
     id: projectList.value.length + 1,
@@ -1839,7 +1989,7 @@ const createProject = () => {
     status: '进行中',
     type: newProject.type,
     amount: newProject.amount,
-    contractPeriod: newProject.contractPeriod,
+    contractPeriod: contractPeriodStr,
     customer: newProject.customer,
     approvalAmount: newProject.amount,
     grossMargin: '0.00'
@@ -1851,7 +2001,7 @@ const createProject = () => {
   // 重置表单
   Object.assign(newProject, {
     name: '',
-    contractPeriod: '',
+    contractPeriod: [],
     customer: '',
     type: '运营类',
     amount: ''
@@ -2245,9 +2395,9 @@ const handleCellDblClick = (row: any, column: any, cell: any, event: any) => {
 }
 
 // 显示工时输入框
-const showWorkDayInput = (row: any, month: number) => {
-  editingCell.value = `${row.name}-${month}`
-  editValue.value = row.workDays && row.workDays[month] ? row.workDays[month] : calculateMonthlyWorkDays(row, month)
+const showWorkDayInput = (row: any, m: { year: number; month: number; key: string }) => {
+  editingCell.value = `${row.name}-${m.key}`
+  editValue.value = row.workDays && row.workDays[m.key] ? row.workDays[m.key] : calculateMonthlyWorkDays(row, m)
   // 在下一个DOM更新周期聚焦输入框
   setTimeout(() => {
     if (inputRef.value) {
@@ -2257,7 +2407,7 @@ const showWorkDayInput = (row: any, month: number) => {
 }
 
 // 保存工时
-const saveWorkDay = (row: any, month: number) => {
+const saveWorkDay = (row: any, m: { year: number; month: number; key: string }) => {
   // 验证输入
   const numValue = parseFloat(editValue.value)
   if (!isNaN(numValue) && numValue >= 0) {
@@ -2268,8 +2418,8 @@ const saveWorkDay = (row: any, month: number) => {
       if (!persons.value[index].workDays) {
         persons.value[index].workDays = {}
       }
-      // 更新工时
-      persons.value[index].workDays[month] = numValue.toFixed(3)
+      // 更新工时（使用 key 作为存储键）
+      persons.value[index].workDays[m.key] = numValue.toFixed(3)
       // 强制触发响应式更新
       persons.value = [...persons.value]
       ElMessage.success('工时更新成功')
@@ -2395,7 +2545,12 @@ const editWorkDays = (row: any, month: number) => {
 }
 
 // 按月计算工作天数函数
-const calculateMonthlyWorkDays = (person: any, month: number) => {
+const calculateMonthlyWorkDays = (person: any, m: { year: number; month: number; key: string }) => {
+  // 优先使用手动设置的工时
+  if (person.workDays && person.workDays[m.key] !== undefined) {
+    return person.workDays[m.key]
+  }
+  
   // 解析合同周期
   const contractPeriod = currentProject.value?.contractPeriod || '2026-01-01 ~ 2026-12-31'
   const [contractStartStr, contractEndStr] = contractPeriod.split(' ~ ')
@@ -2413,10 +2568,9 @@ const calculateMonthlyWorkDays = (person: any, month: number) => {
   const entryDate = new Date(person.entryDate)
   const exitDate = person.exitDate ? new Date(person.exitDate) : contractEnd
   
-  // 计算指定月份的开始和结束日期
-  const year = contractStart.getFullYear() // 使用合同开始年份
-  const monthStart = new Date(year, month - 1, 1)
-  const monthEnd = new Date(year, month, 0)
+  // 计算指定月份的开始和结束日期（使用月份对象的年份）
+  const monthStart = new Date(m.year, m.month - 1, 1)
+  const monthEnd = new Date(m.year, m.month, 0)
   
   // 确保计算范围在合同周期内
   const actualStart = new Date(Math.max(entryDate.getTime(), monthStart.getTime(), contractStart.getTime()))
@@ -2452,6 +2606,204 @@ const calculateWorkDays = (person: any) => {
   return totalDays.toFixed(3)
 }
 
+// 项目结算暂估数据计算（含税）
+const departmentSettlementDataWithTax = computed(() => {
+  const data: any = {}
+  
+  persons.value?.forEach((person: any) => {
+    const dept = person.settlementDept || '未分配'
+    const level = person.settlementLevel || '初级'
+    
+    if (!data[dept]) {
+      data[dept] = {
+        levels: {},
+        levelCount: 0,
+        totalCount: 0,
+        monthlyTotals: {},
+        totalAmount: 0
+      }
+    }
+    
+    if (!data[dept].levels[level]) {
+      data[dept].levels[level] = {
+        count: 0,
+        monthlyAmounts: {},
+        totalAmount: 0
+      }
+      data[dept].levelCount++
+    }
+    
+    data[dept].levels[level].count++
+    data[dept].totalCount++
+    
+    months.value.forEach(m => {
+      const workDays = parseFloat(calculateMonthlyWorkDays(person, m))
+      const unitPrice = person.priceWithTax
+      const monthlyAmount = workDays * unitPrice
+      
+      data[dept].levels[level].monthlyAmounts[m.key] = (data[dept].levels[level].monthlyAmounts[m.key] || 0) + monthlyAmount
+      data[dept].monthlyTotals[m.key] = (data[dept].monthlyTotals[m.key] || 0) + monthlyAmount
+      data[dept].levels[level].totalAmount += monthlyAmount
+      data[dept].totalAmount += monthlyAmount
+    })
+  })
+  
+  return data
+})
+
+// 项目结算暂估数据计算（不含税）
+const departmentSettlementDataWithoutTax = computed(() => {
+  const data: any = {}
+  
+  persons.value?.forEach((person: any) => {
+    const dept = person.settlementDept || '未分配'
+    const level = person.settlementLevel || '初级'
+    
+    if (!data[dept]) {
+      data[dept] = {
+        levels: {},
+        levelCount: 0,
+        totalCount: 0,
+        monthlyTotals: {},
+        totalAmount: 0
+      }
+    }
+    
+    if (!data[dept].levels[level]) {
+      data[dept].levels[level] = {
+        count: 0,
+        monthlyAmounts: {},
+        totalAmount: 0
+      }
+      data[dept].levelCount++
+    }
+    
+    data[dept].levels[level].count++
+    data[dept].totalCount++
+    
+    months.value.forEach(m => {
+      const workDays = parseFloat(calculateMonthlyWorkDays(person, m))
+      const unitPrice = person.priceWithoutTax
+      const monthlyAmount = workDays * unitPrice
+      
+      data[dept].levels[level].monthlyAmounts[m.key] = (data[dept].levels[level].monthlyAmounts[m.key] || 0) + monthlyAmount
+      data[dept].monthlyTotals[m.key] = (data[dept].monthlyTotals[m.key] || 0) + monthlyAmount
+      data[dept].levels[level].totalAmount += monthlyAmount
+      data[dept].totalAmount += monthlyAmount
+    })
+  })
+  
+  return data
+})
+
+// 根据显示类型返回对应数据
+const departmentSettlementData = computed(() => {
+  return showSettlementTaxPrice.value ? departmentSettlementDataWithTax.value : departmentSettlementDataWithoutTax.value
+})
+
+// 项目总计人员数量
+const totalPersonCount = computed(() => {
+  return persons.value?.length || 0
+})
+
+// 项目每月总计金额
+const monthlyProjectTotals = computed(() => {
+  const totals: any = {}
+  months.value.forEach(m => {
+    let total = 0
+    Object.values(departmentSettlementData.value).forEach((deptData: any) => {
+      total += deptData.monthlyTotals[m.key] || 0
+    })
+    totals[m.key] = total
+  })
+  return totals
+})
+
+// 项目总计金额
+const totalProjectAmount = computed(() => {
+  let total = 0
+  Object.values(departmentSettlementData.value).forEach((deptData: any) => {
+    total += deptData.totalAmount
+  })
+  return total
+})
+
+// 分部门结算数据转换为数组格式（用于el-table）
+const departmentSettlementList = computed(() => {
+  const list: any[] = []
+  
+  Object.entries(departmentSettlementData.value).forEach(([dept, deptData]: [string, any]) => {
+    let isFirstRow = true
+    const deptLevels = Object.entries(deptData.levels || {})
+    
+    if (deptLevels.length > 0) {
+      deptLevels.forEach(([level, levelData]: [string, any]) => {
+        list.push({
+          dept: isFirstRow ? dept : '',
+          level,
+          count: levelData.count,
+          monthlyTotals: levelData.monthlyAmounts,
+          totalAmount: levelData.totalAmount,
+          isDeptTotal: false,
+          isTotal: false,
+          rowspan: isFirstRow ? deptLevels.length : 1
+        })
+        isFirstRow = false
+      })
+    }
+    
+    list.push({
+      dept: '',
+      level: '部门小计',
+      count: deptData.totalCount,
+      monthlyTotals: deptData.monthlyTotals,
+      totalAmount: deptData.totalAmount,
+      isDeptTotal: true,
+      isTotal: false
+    })
+  })
+  
+  list.push({
+    dept: '项目总计',
+    level: '',
+    count: totalPersonCount.value,
+    monthlyTotals: monthlyProjectTotals.value,
+    totalAmount: totalProjectAmount.value,
+    isDeptTotal: false,
+    isTotal: true
+  })
+  
+  return list
+})
+
+// 格式化合同周期显示
+const formatContractPeriod = (period: string | undefined) => {
+  if (!period) return '未设置'
+  
+  if (period.includes(' ~ ')) {
+    const parts = period.split(' ~ ')
+    if (parts.length === 2) {
+      const startDate = parts[0]
+      let endDate = parts[1]
+      
+      // 如果结束日期没有年份，添加开始日期的年份
+      if (endDate.indexOf('-') === 2 || endDate.length === 5) {
+        const year = startDate.substring(0, 4)
+        endDate = `${year}-${endDate}`
+      }
+      
+      return `${startDate} ~ ${endDate}`
+    }
+  }
+  
+  return period
+}
+
+// 数字格式化函数
+const formatNumber = (num: number) => {
+  return num.toFixed(2)
+}
+
 // 检查是否是节假日（简化实现，实际应用中需要从配置或API获取节假日列表）
 const isHoliday = (date: Date) => {
   // 这里只是示例，实际应用中需要从配置或API获取节假日列表
@@ -2475,6 +2827,8 @@ const isHoliday = (date: Date) => {
   const dateStr = date.toISOString().split('T')[0]
   return holidays.includes(dateStr)
 }
+
+
 </script>
 
 <style scoped>
