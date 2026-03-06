@@ -445,6 +445,12 @@
               <el-icon class="text-[16px]"><Download /></el-icon> 下载
             </button>
             <button 
+              class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1"
+              @click="showExcelImportDialog = true"
+            >
+              <el-icon class="text-[16px]"><Upload /></el-icon> Excel导入
+            </button>
+            <button 
               class="bg-primary hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1"
               @click="showAddPersonDialog = true"
             >
@@ -517,7 +523,7 @@
             </el-table-column>
             <el-table-column
               prop="settlementLevel"
-              label="级别"
+              label="结算等级"
               width="80"
               align="center"
             >
@@ -600,6 +606,95 @@
               :disabled="currentPage * pageSize >= totalPersons"
               @click="handleNextPage"
             >下一页</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 项目采购列表 -->
+      <section 
+        class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden mt-6"
+        style="width: 1280px;"
+      >
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/20">
+          <h3 class="font-bold flex items-center gap-2">
+            <el-icon class="text-primary"><ShoppingCart /></el-icon> 项目采购列表
+          </h3>
+          <button
+            class="px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm font-medium flex items-center gap-1"
+            @click="openAddProjectPurchase"
+          >
+            <el-icon><Plus /></el-icon>
+            新增采购
+          </button>
+        </div>
+        
+        <div class="p-6">
+          <el-table
+            :data="projectPurchaseList"
+            border
+            stripe
+          >
+            <el-table-column prop="purchaseDept" label="采购部门" width="120" />
+            <el-table-column prop="matter" label="采购事项" min-width="150" />
+            <el-table-column prop="item" label="采购物品" min-width="150" />
+            <el-table-column prop="quantity" label="采购数量" width="100" align="right" />
+            <el-table-column prop="unitPrice" label="采购单价" width="120" align="right">
+              <template #default="{ row }">
+                <span>¥{{ formatNumber(row.unitPrice || 0) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="totalPrice" label="采购总价" width="130" align="right">
+              <template #default="{ row }">
+                <span class="font-medium text-orange-600 dark:text-orange-400">¥{{ formatNumber(row.totalPrice || 0) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="settlementRatio" label="结算系数" width="100" align="center">
+              <template #default="{ row }">
+                <span class="text-blue-600 dark:text-blue-400">{{ row.settlementRatio || 1 }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="purchaseTime" label="采购时间" width="120" />
+            <el-table-column prop="settlementMonth" label="结算月" width="100" />
+            <el-table-column prop="executor" label="执行人" width="100" />
+            <el-table-column label="结算金额" width="130" align="right">
+              <template #default="{ row }">
+                <span class="font-bold text-primary">¥{{ formatNumber(getPurchaseSettlementAmount(row)) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="120" align="center" fixed="right">
+              <template #default="{ row, $index }">
+                <div class="flex items-center justify-center gap-2">
+                  <el-button type="primary" link size="small" @click="editProjectPurchase(row, $index)">
+                    <el-icon><Edit /></el-icon>
+                  </el-button>
+                  <el-button type="danger" link size="small" @click="deleteProjectPurchase($index)">
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <div v-if="projectPurchaseList.length === 0" class="text-center py-8 text-slate-400 dark:text-slate-500">
+            <el-icon class="text-4xl mb-2"><ShoppingCart /></el-icon>
+            <p>暂无采购数据，点击上方按钮新增</p>
+          </div>
+
+          <div v-if="projectPurchaseList.length > 0" class="mt-4 flex justify-end gap-4">
+            <div class="bg-slate-100 dark:bg-slate-800 rounded-lg px-6 py-3">
+              <span class="text-sm text-slate-600 dark:text-slate-400">结算金额合计：</span>
+              <span class="text-lg font-bold text-primary ml-2">¥{{ formatNumber(totalPurchaseSettlementAmount) }}</span>
+            </div>
+            <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg px-6 py-3 border border-blue-200 dark:border-blue-800">
+              <span class="text-sm text-blue-600 dark:text-blue-400">对应结算情况：</span>
+              <span class="text-lg font-bold text-blue-700 dark:text-blue-300 ml-2">¥{{ formatNumber(virtualPersonSettlementAmount) }}</span>
+            </div>
+          </div>
+          <div v-else class="mt-4 flex justify-end">
+            <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg px-6 py-3 border border-blue-200 dark:border-blue-800">
+              <span class="text-sm text-blue-600 dark:text-blue-400">对应结算情况：</span>
+              <span class="text-lg font-bold text-blue-700 dark:text-blue-300 ml-2">¥{{ formatNumber(virtualPersonSettlementAmount) }}</span>
+            </div>
           </div>
         </div>
       </section>
@@ -687,8 +782,652 @@
         </div>
       </section>
 
+      <!-- 自由计算模块 -->
+      <section 
+        class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden mt-6"
+        style="width: 1280px;"
+      >
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/20">
+          <h3 class="font-bold flex items-center gap-2">
+            <el-icon class="text-primary"><Calendar /></el-icon> 自由计算
+          </h3>
+        </div>
+        
+        <div class="p-6">
+          <div class="flex flex-wrap items-end gap-4 mb-6" style="min-width: 100%;">
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium text-slate-700 dark:text-slate-300">开始月份</label>
+              <el-date-picker
+                v-model="freeCalcStartMonth"
+                type="month"
+                placeholder="选择开始月份"
+                value-format="YYYY-MM"
+                format="YYYY年MM月"
+                class="w-40"
+              />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium text-slate-700 dark:text-slate-300">结束月份</label>
+              <el-date-picker
+                v-model="freeCalcEndMonth"
+                type="month"
+                placeholder="选择结束月份"
+                value-format="YYYY-MM"
+                format="YYYY年MM月"
+                class="w-40"
+              />
+            </div>
+            <div class="flex flex-col gap-1 flex-grow min-w-[320px]">
+              <label class="text-sm font-medium text-slate-700 dark:text-slate-300">选择部门</label>
+              <el-select
+                v-model="freeCalcDept"
+                placeholder="请选择部门"
+                clearable
+                class="w-full"
+              >
+                <el-option label="全部部门" value="" />
+                <el-option
+                  v-for="dept in departments"
+                  :key="dept"
+                  :label="dept"
+                  :value="dept"
+                />
+              </el-select>
+            </div>
+            <button
+              class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm font-medium"
+              @click="calculateFreeSettlement"
+            >
+              计算暂估金额
+            </button>
+          </div>
+
+          <div v-if="freeCalcResult" class="grid grid-cols-2 gap-6">
+            <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
+              <div class="flex items-center gap-2 mb-2">
+                <el-icon class="text-blue-600 dark:text-blue-400 text-xl"><Money /></el-icon>
+                <span class="text-sm font-medium text-blue-700 dark:text-blue-300">含税金额</span>
+              </div>
+              <div class="text-3xl font-bold text-blue-800 dark:text-blue-200">
+                ¥{{ formatNumber(freeCalcResult.withTax) }}
+              </div>
+              <div class="mt-2 text-xs text-blue-600 dark:text-blue-400">
+                时间周期: {{ freeCalcResult.monthCount }} 个月
+              </div>
+            </div>
+            <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 rounded-xl p-6 border border-green-200 dark:border-green-800">
+              <div class="flex items-center gap-2 mb-2">
+                <el-icon class="text-green-600 dark:text-green-400 text-xl"><Money /></el-icon>
+                <span class="text-sm font-medium text-green-700 dark:text-green-300">不含税金额</span>
+              </div>
+              <div class="text-3xl font-bold text-green-800 dark:text-green-200">
+                ¥{{ formatNumber(freeCalcResult.withoutTax) }}
+              </div>
+              <div class="mt-2 text-xs text-green-600 dark:text-green-400">
+                部门: {{ freeCalcDept || '全部部门' }}
+              </div>
+            </div>
+          </div>
+
+          <div v-if="freeCalcResult && freeCalcResult.detailList.length > 0" class="mt-6">
+            <h4 class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">详细统计</h4>
+            <el-table
+              :data="freeCalcResult.detailList"
+              border
+              stripe
+              size="small"
+            >
+              <el-table-column prop="dept" label="部门" width="150" />
+              <el-table-column prop="level" label="等级" width="100" />
+              <el-table-column prop="count" label="人数" width="80" align="right" />
+              <el-table-column label="含税金额" width="150" align="right">
+                <template #default="{ row }">
+                  <span class="text-blue-600 dark:text-blue-400 font-medium">¥{{ formatNumber(row.withTax) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="不含税金额" width="150" align="right">
+                <template #default="{ row }">
+                  <span class="text-green-600 dark:text-green-400 font-medium">¥{{ formatNumber(row.withoutTax) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="月度明细">
+                <template #default="{ row }">
+                  <div class="flex flex-wrap gap-1">
+                    <span 
+                      v-for="(amount, monthKey) in row.monthlyAmounts" 
+                      :key="monthKey"
+                      class="text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-700 rounded"
+                    >
+                      {{ monthKey }}: ¥{{ formatNumber(amount) }}
+                    </span>
+                  </div>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+
+          <div v-if="!freeCalcStartMonth || !freeCalcEndMonth" class="text-center py-8 text-slate-400 dark:text-slate-500">
+            <el-icon class="text-4xl mb-2"><Calendar /></el-icon>
+            <p>请选择时间周期后进行计算</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 月成本列表 -->
+      <section 
+        class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden mt-6"
+        style="width: 1280px;"
+      >
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/20">
+          <h3 class="font-bold flex items-center gap-2">
+            <el-icon class="text-primary"><Coin /></el-icon> 月成本列表
+          </h3>
+          <button
+            class="px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm font-medium flex items-center gap-1"
+            @click="openAddMonthlyCost"
+          >
+            <el-icon><Plus /></el-icon>
+            新增月成本
+          </button>
+        </div>
+        
+        <div class="p-6">
+          <el-table
+            :data="monthlyCostList"
+            border
+            stripe
+          >
+            <el-table-column prop="month" label="成本月" width="120" />
+            <el-table-column prop="directCost" label="直接成本" width="140" align="right">
+              <template #default="{ row }">
+                <span class="text-red-500">¥{{ formatNumber(row.directCost || 0) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="operatingCost" label="经营成本" width="140" align="right">
+              <template #default="{ row }">
+                <span class="text-orange-500">¥{{ formatNumber(row.operatingCost || 0) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="sharedCost" label="公摊" width="120" align="right">
+              <template #default="{ row }">
+                <span class="text-yellow-600 dark:text-yellow-400">¥{{ formatNumber(row.sharedCost || 0) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="月成本总计" width="140" align="right">
+              <template #default="{ row }">
+                <span class="font-bold text-primary">¥{{ formatNumber(getMonthlyCostTotal(row)) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="120" align="center" fixed="right">
+              <template #default="{ row, $index }">
+                <div class="flex items-center justify-center gap-2">
+                  <el-button type="primary" link size="small" @click="editMonthlyCost(row, $index)">
+                    <el-icon><Edit /></el-icon>
+                  </el-button>
+                  <el-button type="danger" link size="small" @click="deleteMonthlyCost($index)">
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <div v-if="monthlyCostList.length === 0" class="text-center py-8 text-slate-400 dark:text-slate-500">
+            <el-icon class="text-4xl mb-2"><Coin /></el-icon>
+            <p>暂无月成本数据，点击上方按钮新增</p>
+          </div>
+
+          <div v-if="monthlyCostList.length > 0" class="mt-4 flex justify-end">
+            <div class="bg-slate-100 dark:bg-slate-800 rounded-lg px-6 py-3">
+              <span class="text-sm text-slate-600 dark:text-slate-400">成本合计：</span>
+              <span class="text-lg font-bold text-primary ml-2">¥{{ formatNumber(totalMonthlyCost) }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 项目实际结算列表 -->
+      <section 
+        class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden mt-6"
+        style="width: 1280px;"
+      >
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/20">
+          <h3 class="font-bold flex items-center gap-2">
+            <el-icon class="text-primary"><Wallet /></el-icon> 项目实际结算列表
+          </h3>
+          <button
+            class="px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm font-medium flex items-center gap-1"
+            @click="openAddActualSettlement"
+          >
+            <el-icon><Plus /></el-icon>
+            新增实际结算
+          </button>
+        </div>
+        
+        <div class="p-6">
+          <el-table
+            :data="actualSettlementList"
+            border
+            stripe
+          >
+            <el-table-column label="结算周期" min-width="200">
+              <template #default="{ row }">
+                <span v-if="row.period && row.period.length === 2">{{ row.period[0] }} ~ {{ row.period[1] }}</span>
+                <span v-else>-</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="dept" label="结算部门" width="150" />
+            <el-table-column prop="amountWithTax" label="含税金额" width="140" align="right">
+              <template #default="{ row }">
+                <span class="text-blue-600 dark:text-blue-400">¥{{ formatNumber(row.amountWithTax || 0) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="amountWithoutTax" label="不含税金额" width="140" align="right">
+              <template #default="{ row }">
+                <span class="text-green-600 dark:text-green-400">¥{{ formatNumber(row.amountWithoutTax || 0) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="120" align="center" fixed="right">
+              <template #default="{ row, $index }">
+                <div class="flex items-center justify-center gap-2">
+                  <el-button type="primary" link size="small" @click="editActualSettlement(row, $index)">
+                    <el-icon><Edit /></el-icon>
+                  </el-button>
+                  <el-button type="danger" link size="small" @click="deleteActualSettlement($index)">
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <div v-if="actualSettlementList.length === 0" class="text-center py-8 text-slate-400 dark:text-slate-500">
+            <el-icon class="text-4xl mb-2"><Wallet /></el-icon>
+            <p>暂无实际结算数据，点击上方按钮新增</p>
+          </div>
+
+          <div v-if="actualSettlementList.length > 0" class="mt-4 flex justify-end gap-6">
+            <div class="bg-slate-100 dark:bg-slate-800 rounded-lg px-6 py-3">
+              <span class="text-sm text-slate-600 dark:text-slate-400">含税金额合计：</span>
+              <span class="text-lg font-bold text-blue-600 dark:text-blue-400 ml-2">¥{{ formatNumber(totalActualSettlementWithTax) }}</span>
+            </div>
+            <div class="bg-slate-100 dark:bg-slate-800 rounded-lg px-6 py-3">
+              <span class="text-sm text-slate-600 dark:text-slate-400">不含税金额合计：</span>
+              <span class="text-lg font-bold text-green-600 dark:text-green-400 ml-2">¥{{ formatNumber(totalActualSettlementWithoutTax) }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
 
     </main>
+
+    <!-- 月成本对话框 -->
+    <div v-if="showMonthlyCostDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div class="bg-white dark:bg-card-dark rounded-lg shadow-xl w-full max-w-md p-6">
+        <h3 class="text-lg font-semibold mb-4">{{ isEditingMonthlyCost.value ? '编辑月成本' : '新增月成本' }}</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">成本月</label>
+            <el-date-picker
+              v-model="monthlyCostForm.month"
+              type="month"
+              placeholder="选择月份"
+              value-format="YYYY-MM"
+              format="YYYY年MM月"
+              class="w-full"
+              :disabled="isEditingMonthlyCost"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">直接成本</label>
+            <input 
+              v-model.number="monthlyCostForm.directCost"
+              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              placeholder="请输入直接成本"
+              type="number"
+              min="0"
+              step="0.01"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">经营成本</label>
+            <input 
+              v-model.number="monthlyCostForm.operatingCost"
+              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              placeholder="请输入经营成本"
+              type="number"
+              min="0"
+              step="0.01"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">公摊</label>
+            <input 
+              v-model.number="monthlyCostForm.sharedCost"
+              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              placeholder="请输入公摊"
+              type="number"
+              min="0"
+              step="0.01"
+            />
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 mt-4">
+            <div class="flex justify-between items-center">
+              <span class="text-sm font-medium text-slate-600 dark:text-slate-400">月成本总计：</span>
+              <span class="text-lg font-bold text-primary">
+                ¥{{ formatNumber(monthlyCostForm.directCost + monthlyCostForm.operatingCost + monthlyCostForm.sharedCost) }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button
+            class="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
+            @click="showMonthlyCostDialog = false"
+          >
+            取消
+          </button>
+          <button
+            class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm font-medium"
+            @click="saveMonthlyCost"
+          >
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 项目实际结算对话框 -->
+    <div v-if="showActualSettlementDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div class="bg-white dark:bg-card-dark rounded-lg shadow-xl w-full max-w-md p-6">
+        <h3 class="text-lg font-semibold mb-4">{{ isEditingActualSettlement.value ? '编辑实际结算' : '新增实际结算' }}</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">结算周期</label>
+            <el-date-picker
+              v-model="actualSettlementForm.period"
+              type="daterange"
+              range-separator="~"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              value-format="YYYY-MM-DD"
+              format="YYYY年MM月DD日"
+              class="w-full"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">结算部门</label>
+            <el-select
+              v-model="actualSettlementForm.dept"
+              placeholder="请选择结算部门"
+              clearable
+              class="w-full"
+            >
+              <el-option
+                v-for="dept in departments"
+                :key="dept"
+                :label="dept"
+                :value="dept"
+              />
+            </el-select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">含税金额</label>
+            <input 
+              v-model.number="actualSettlementForm.amountWithTax"
+              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              placeholder="请输入含税金额"
+              type="number"
+              min="0"
+              step="0.01"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">不含税金额</label>
+            <input 
+              v-model.number="actualSettlementForm.amountWithoutTax"
+              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              placeholder="请输入不含税金额"
+              type="number"
+              min="0"
+              step="0.01"
+            />
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button
+            class="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
+            @click="showActualSettlementDialog = false"
+          >
+            取消
+          </button>
+          <button
+            class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm font-medium"
+            @click="saveActualSettlement"
+          >
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 项目采购对话框 -->
+    <div v-if="showProjectPurchaseDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div class="bg-white dark:bg-card-dark rounded-lg shadow-xl w-full max-w-lg p-6">
+        <h3 class="text-lg font-semibold mb-4">{{ isEditingProjectPurchase.value ? '编辑采购' : '新增采购' }}</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">采购部门</label>
+            <el-select
+              v-model="projectPurchaseForm.purchaseDept"
+              placeholder="请选择采购部门"
+              clearable
+              class="w-full"
+            >
+              <el-option
+                v-for="dept in departments"
+                :key="dept"
+                :label="dept"
+                :value="dept"
+              />
+            </el-select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">采购事项</label>
+            <input 
+              v-model="projectPurchaseForm.matter"
+              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              placeholder="请输入采购事项"
+              type="text"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">采购物品</label>
+            <input 
+              v-model="projectPurchaseForm.item"
+              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              placeholder="请输入采购物品"
+              type="text"
+            />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">采购数量</label>
+              <input 
+                v-model.number="projectPurchaseForm.quantity"
+                class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                placeholder="请输入采购数量"
+                type="number"
+                min="1"
+                @input="calculateTotalPrice"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">采购单价</label>
+              <input 
+                v-model.number="projectPurchaseForm.unitPrice"
+                class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                placeholder="请输入采购单价"
+                type="number"
+                min="0"
+                step="0.01"
+                @input="calculateTotalPrice"
+              />
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">采购总价</label>
+            <input 
+              v-model.number="projectPurchaseForm.totalPrice"
+              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              placeholder="采购单价×采购数量，可手动修改"
+              type="number"
+              min="0"
+              step="0.01"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">结算系数</label>
+            <input 
+              v-model.number="projectPurchaseForm.settlementRatio"
+              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              placeholder="请输入结算系数"
+              type="number"
+              min="0"
+              step="0.01"
+            />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">采购时间</label>
+              <el-date-picker
+                v-model="projectPurchaseForm.purchaseTime"
+                type="date"
+                placeholder="选择采购时间"
+                value-format="YYYY-MM-DD"
+                format="YYYY年MM月DD日"
+                class="w-full"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">结算月</label>
+              <el-date-picker
+                v-model="projectPurchaseForm.settlementMonth"
+                type="month"
+                placeholder="选择结算月"
+                value-format="YYYY-MM"
+                format="YYYY年MM月"
+                class="w-full"
+              />
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">执行人</label>
+            <input 
+              v-model="projectPurchaseForm.executor"
+              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              placeholder="请输入执行人"
+              type="text"
+            />
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 mt-4">
+            <div class="flex justify-between items-center">
+              <span class="text-sm font-medium text-slate-600 dark:text-slate-400">结算金额（采购总价×结算系数）：</span>
+              <span class="text-lg font-bold text-primary">
+                ¥{{ formatNumber(projectPurchaseForm.totalPrice * projectPurchaseForm.settlementRatio) }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button
+            class="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
+            @click="showProjectPurchaseDialog = false"
+          >
+            取消
+          </button>
+          <button
+            class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm font-medium"
+            @click="saveProjectPurchase"
+          >
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Excel导入对话框 -->
+    <div v-if="showExcelImportDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div class="bg-white dark:bg-card-dark rounded-lg shadow-xl w-full max-w-2xl p-6">
+        <h3 class="text-lg font-semibold mb-4">Excel导入人员</h3>
+        <div class="space-y-4">
+          <div class="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-8 text-center">
+            <input 
+              ref="excelFileInput"
+              type="file" 
+              accept=".xlsx,.xls"
+              class="hidden"
+              @change="handleExcelFileChange"
+            />
+            <el-icon class="text-4xl text-slate-400 mb-2"><Upload /></el-icon>
+            <p class="text-sm text-slate-600 dark:text-slate-400 mb-2">点击或拖拽Excel文件到此处</p>
+            <button 
+              class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm"
+              @click="($refs.excelFileInput as HTMLInputElement).click()"
+            >
+              选择文件
+            </button>
+            <p v-if="excelFileName" class="mt-2 text-sm text-green-600 dark:text-green-400">
+              已选择: {{ excelFileName }}
+            </p>
+          </div>
+          
+          <div v-if="excelPreviewData.length > 0" class="mt-4">
+            <div class="flex justify-between items-center mb-2">
+              <h4 class="text-sm font-medium text-slate-700 dark:text-slate-300">预览数据 (共{{ excelPreviewData.length }}条)</h4>
+              <div class="flex items-center gap-2">
+                <span v-if="duplicatePersonNames.length > 0" class="text-xs text-red-500">
+                  检测到{{ duplicatePersonNames.length }}个重复人员
+                </span>
+              </div>
+            </div>
+            <el-table
+              :data="excelPreviewData"
+              border
+              stripe
+              max-height="300"
+              size="small"
+            >
+              <el-table-column prop="name" label="姓名" width="100">
+                <template #default="{ row }">
+                  <span :class="isDuplicatePerson(row.name) ? 'text-red-500 font-bold' : ''">{{ row.name }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="team" label="团队" width="100" />
+              <el-table-column prop="position" label="岗位" width="120" />
+              <el-table-column prop="settlementDept" label="结算部门" width="100" />
+              <el-table-column prop="settlementLevel" label="结算等级" width="100" />
+              <el-table-column prop="entryDate" label="入场日期" width="120" />
+            </el-table>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button
+            class="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
+            @click="cancelExcelImport"
+          >
+            取消
+          </button>
+          <button
+            class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm font-medium"
+            :disabled="excelPreviewData.length === 0"
+            @click="confirmExcelImport"
+          >
+            确认导入
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- 新建项目对话框 -->
     <div v-if="showCreateProjectDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -1459,6 +2198,7 @@
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import * as XLSX from 'xlsx'
 
 const router = useRouter()
 const username = ref('')
@@ -1493,7 +2233,447 @@ const showSettlementTaxPrice = ref(true)
 const personSearchQuery = ref('')
 const selectedDept = ref('')
 
+// Excel导入相关
+const showExcelImportDialog = ref(false)
+const excelFileName = ref('')
+const excelPreviewData = ref<Array<any>>([])
+const duplicatePersonNames = ref<string[]>([])
 
+const isDuplicatePerson = (name: string) => {
+  return duplicatePersonNames.value.includes(name)
+}
+
+const handleExcelFileChange = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+  
+  excelFileName.value = file.name
+  
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const data = e.target?.result
+    const workbook = XLSX.read(data, { type: 'array' })
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+    
+    if (jsonData.length < 2) {
+      ElMessage.warning('Excel文件为空或格式不正确')
+      return
+    }
+    
+    const headers = jsonData[0] as string[]
+    const headerMap: Record<string, number> = {}
+    headers.forEach((header, index) => {
+      if (header) {
+        headerMap[header.trim()] = index
+      }
+    })
+    
+    const parsedData: any[] = []
+    const duplicates: string[] = []
+    
+    for (let i = 1; i < jsonData.length; i++) {
+      const row = jsonData[i] as any[]
+      if (!row || row.length === 0) continue
+      
+      const excelLevel = row[headerMap['结算等级']] || row[headerMap['等级']] || row[headerMap['人员等级']] || row[headerMap['级别']] || ''
+      
+      let settlementLevel = excelLevel
+      if (!settlementLevel || settlementLevel === '') {
+        settlementLevel = settlementLevels.value.length > 0 ? settlementLevels.value[0].name : '初级'
+      } else {
+        const matchedLevel = settlementLevels.value.find(level => 
+          level.name === settlementLevel || 
+          level.name.toLowerCase() === settlementLevel.toLowerCase() ||
+          level.name.includes(settlementLevel) ||
+          settlementLevel.includes(level.name)
+        )
+        if (matchedLevel) {
+          settlementLevel = matchedLevel.name
+        } else {
+          settlementLevel = settlementLevels.value.length > 0 ? settlementLevels.value[0].name : '初级'
+        }
+      }
+      
+      const person: any = {
+        name: row[headerMap['姓名']] || row[headerMap['人员姓名']] || row[0] || '',
+        team: row[headerMap['团队']] || row[headerMap['所属团队']] || '',
+        position: row[headerMap['岗位']] || row[headerMap['职位']] || '',
+        settlementDept: row[headerMap['结算部门']] || row[headerMap['部门']] || '',
+        settlementLevel: settlementLevel,
+        contact: row[headerMap['对接人']] || '',
+        entryDate: row[headerMap['入场日期']] || row[headerMap['入场时间']] || '',
+        exitDate: row[headerMap['离场日期']] || row[headerMap['离场时间']] || '',
+        priceWithTax: parseFloat(row[headerMap['含税单价']]) || 0,
+        priceWithoutTax: parseFloat(row[headerMap['不含税单价']]) || 0,
+        inputType: row[headerMap['投入类型']] || '实际',
+        workDays: {}
+      }
+      
+      if (!person.priceWithTax || person.priceWithTax === 0) {
+        const levelConfig = settlementLevels.value.find(level => level.name === settlementLevel)
+        if (levelConfig) {
+          person.priceWithTax = levelConfig.priceWithTax
+          person.priceWithoutTax = levelConfig.priceWithoutTax
+        }
+      }
+      
+      if (person.name) {
+        const existingPerson = persons.value.find((p: any) => p.name === person.name)
+        if (existingPerson) {
+          duplicates.push(person.name)
+        }
+        parsedData.push(person)
+      }
+    }
+    
+    excelPreviewData.value = parsedData
+    duplicatePersonNames.value = duplicates
+    
+    if (duplicates.length > 0) {
+      ElMessage.warning(`检测到${duplicates.length}个重复人员，导入后将标红显示`)
+    }
+  }
+  reader.readAsArrayBuffer(file)
+}
+
+const cancelExcelImport = () => {
+  showExcelImportDialog.value = false
+  excelFileName.value = ''
+  excelPreviewData.value = []
+  duplicatePersonNames.value = []
+}
+
+const confirmExcelImport = () => {
+  if (excelPreviewData.value.length === 0) {
+    ElMessage.warning('没有可导入的数据')
+    return
+  }
+  
+  let importCount = 0
+  excelPreviewData.value.forEach(person => {
+    persons.value.push({ ...person })
+    importCount++
+  })
+  
+  ElMessage.success(`成功导入${importCount}条人员数据`)
+  cancelExcelImport()
+}
+
+// 自由计算相关
+const freeCalcStartMonth = ref('')
+const freeCalcEndMonth = ref('')
+const freeCalcDept = ref('')
+const freeCalcResult = ref<{
+  withTax: number
+  withoutTax: number
+  monthCount: number
+  detailList: Array<{
+    dept: string
+    level: string
+    count: number
+    withTax: number
+    withoutTax: number
+    monthlyAmounts: Record<string, number>
+  }>
+} | null>(null)
+
+// 月成本列表相关
+const monthlyCostList = ref<Array<{
+  month: string
+  directCost: number
+  operatingCost: number
+  sharedCost: number
+}>>([])
+const showMonthlyCostDialog = ref(false)
+const isEditingMonthlyCost = ref(false)
+const currentMonthlyCostIndex = ref(-1)
+const monthlyCostForm = reactive({
+  month: '',
+  directCost: 0,
+  operatingCost: 0,
+  sharedCost: 0
+})
+
+const totalMonthlyCost = computed(() => {
+  return monthlyCostList.value.reduce((sum, item) => {
+    return sum + (item.directCost || 0) + (item.operatingCost || 0) + (item.sharedCost || 0)
+  }, 0)
+})
+
+const getMonthlyCostTotal = (row: any) => {
+  return (row.directCost || 0) + (row.operatingCost || 0) + (row.sharedCost || 0)
+}
+
+const openAddMonthlyCost = () => {
+  monthlyCostForm.month = ''
+  monthlyCostForm.directCost = 0
+  monthlyCostForm.operatingCost = 0
+  monthlyCostForm.sharedCost = 0
+  isEditingMonthlyCost.value = false
+  currentMonthlyCostIndex.value = -1
+  showMonthlyCostDialog.value = true
+}
+
+const editMonthlyCost = (row: any, index: number) => {
+  monthlyCostForm.month = row.month
+  monthlyCostForm.directCost = row.directCost
+  monthlyCostForm.operatingCost = row.operatingCost
+  monthlyCostForm.sharedCost = row.sharedCost
+  isEditingMonthlyCost.value = true
+  currentMonthlyCostIndex.value = index
+  showMonthlyCostDialog.value = true
+}
+
+const saveMonthlyCost = () => {
+  if (!monthlyCostForm.month) {
+    ElMessage.warning('请选择成本月')
+    return
+  }
+
+  if (isEditingMonthlyCost.value) {
+    monthlyCostList.value[currentMonthlyCostIndex.value] = { ...monthlyCostForm }
+    ElMessage.success('修改成功')
+  } else {
+    const existsIndex = monthlyCostList.value.findIndex(item => item.month === monthlyCostForm.month)
+    if (existsIndex >= 0) {
+      ElMessage.warning('该月份成本已存在，请选择编辑')
+      return
+    }
+    monthlyCostList.value.push({ ...monthlyCostForm })
+    ElMessage.success('添加成功')
+  }
+
+  monthlyCostList.value.sort((a, b) => a.month.localeCompare(b.month))
+  showMonthlyCostDialog.value = false
+}
+
+const deleteMonthlyCost = (index: number) => {
+  monthlyCostList.value.splice(index, 1)
+  ElMessage.success('删除成功')
+}
+
+// 项目实际结算列表相关
+const loadActualSettlementFromStorage = () => {
+  const saved = localStorage.getItem('project_actual_settlements')
+  if (saved) {
+    try {
+      return JSON.parse(saved)
+    } catch (e) {
+      return []
+    }
+  }
+  return []
+}
+
+const actualSettlementList = ref<Array<{
+  period: string[]
+  dept: string
+  amountWithTax: number
+  amountWithoutTax: number
+}>>(loadActualSettlementFromStorage())
+
+watch(actualSettlementList, (newVal) => {
+  localStorage.setItem('project_actual_settlements', JSON.stringify(newVal))
+}, { deep: true })
+const showActualSettlementDialog = ref(false)
+const isEditingActualSettlement = ref(false)
+const currentActualSettlementIndex = ref(-1)
+const actualSettlementForm = reactive({
+  period: [] as string[],
+  dept: '',
+  amountWithTax: 0,
+  amountWithoutTax: 0
+})
+
+const totalActualSettlementWithTax = computed(() => {
+  return actualSettlementList.value.reduce((sum, item) => sum + (item.amountWithTax || 0), 0)
+})
+
+const totalActualSettlementWithoutTax = computed(() => {
+  return actualSettlementList.value.reduce((sum, item) => sum + (item.amountWithoutTax || 0), 0)
+})
+
+const openAddActualSettlement = () => {
+  actualSettlementForm.period = []
+  actualSettlementForm.dept = ''
+  actualSettlementForm.amountWithTax = 0
+  actualSettlementForm.amountWithoutTax = 0
+  isEditingActualSettlement.value = false
+  currentActualSettlementIndex.value = -1
+  showActualSettlementDialog.value = true
+}
+
+const editActualSettlement = (row: any, index: number) => {
+  actualSettlementForm.period = row.period || []
+  actualSettlementForm.dept = row.dept
+  actualSettlementForm.amountWithTax = row.amountWithTax
+  actualSettlementForm.amountWithoutTax = row.amountWithoutTax
+  isEditingActualSettlement.value = true
+  currentActualSettlementIndex.value = index
+  showActualSettlementDialog.value = true
+}
+
+const saveActualSettlement = () => {
+  if (!actualSettlementForm.period || actualSettlementForm.period.length === 0) {
+    ElMessage.warning('请选择结算周期')
+    return
+  }
+  if (!actualSettlementForm.dept) {
+    ElMessage.warning('请选择结算部门')
+    return
+  }
+
+  if (isEditingActualSettlement.value) {
+    actualSettlementList.value[currentActualSettlementIndex.value] = { ...actualSettlementForm }
+    ElMessage.success('修改成功')
+  } else {
+    actualSettlementList.value.push({ ...actualSettlementForm })
+    ElMessage.success('添加成功')
+  }
+
+  showActualSettlementDialog.value = false
+}
+
+const deleteActualSettlement = (index: number) => {
+  actualSettlementList.value.splice(index, 1)
+  ElMessage.success('删除成功')
+}
+
+// 项目采购列表相关
+const loadProjectPurchaseFromStorage = () => {
+  const saved = localStorage.getItem('project_purchases')
+  if (saved) {
+    try {
+      return JSON.parse(saved)
+    } catch (e) {
+      return []
+    }
+  }
+  return []
+}
+
+const projectPurchaseList = ref<Array<{
+  matter: string
+  item: string
+  quantity: number
+  unitPrice: number
+  totalPrice: number
+  settlementRatio: number
+  purchaseDept: string
+  purchaseTime: string
+  settlementMonth: string
+  executor: string
+}>>(loadProjectPurchaseFromStorage())
+
+watch(projectPurchaseList, (newVal) => {
+  localStorage.setItem('project_purchases', JSON.stringify(newVal))
+}, { deep: true })
+const showProjectPurchaseDialog = ref(false)
+const isEditingProjectPurchase = ref(false)
+const currentProjectPurchaseIndex = ref(-1)
+const projectPurchaseForm = reactive({
+  matter: '',
+  item: '',
+  quantity: 1,
+  unitPrice: 0,
+  totalPrice: 0,
+  settlementRatio: 1,
+  purchaseDept: '',
+  purchaseTime: '',
+  settlementMonth: '',
+  executor: ''
+})
+
+const getPurchaseSettlementAmount = (row: any) => {
+  return (row.totalPrice || 0) * (row.settlementRatio || 1)
+}
+
+const totalPurchaseSettlementAmount = computed(() => {
+  return projectPurchaseList.value.reduce((sum, item) => {
+    return sum + getPurchaseSettlementAmount(item)
+  }, 0)
+})
+
+const virtualPersonSettlementAmount = computed(() => {
+  let totalAmount = 0
+  const virtualPersons = persons.value.filter((person: any) => person.inputType === '虚拟')
+  
+  virtualPersons.forEach((person: any) => {
+    months.value.forEach(m => {
+      const workDays = parseFloat(calculateMonthlyWorkDays(person, m))
+      const unitPrice = person.priceWithTax
+      const monthlyAmount = workDays * unitPrice
+      totalAmount += monthlyAmount
+    })
+  })
+  
+  return totalAmount
+})
+
+const openAddProjectPurchase = () => {
+  projectPurchaseForm.matter = ''
+  projectPurchaseForm.item = ''
+  projectPurchaseForm.quantity = 1
+  projectPurchaseForm.unitPrice = 0
+  projectPurchaseForm.totalPrice = 0
+  projectPurchaseForm.settlementRatio = 1
+  projectPurchaseForm.purchaseDept = ''
+  projectPurchaseForm.purchaseTime = ''
+  projectPurchaseForm.settlementMonth = ''
+  projectPurchaseForm.executor = ''
+  isEditingProjectPurchase.value = false
+  currentProjectPurchaseIndex.value = -1
+  showProjectPurchaseDialog.value = true
+}
+
+const editProjectPurchase = (row: any, index: number) => {
+  projectPurchaseForm.matter = row.matter
+  projectPurchaseForm.item = row.item
+  projectPurchaseForm.quantity = row.quantity
+  projectPurchaseForm.unitPrice = row.unitPrice
+  projectPurchaseForm.totalPrice = row.totalPrice
+  projectPurchaseForm.settlementRatio = row.settlementRatio
+  projectPurchaseForm.purchaseDept = row.purchaseDept || ''
+  projectPurchaseForm.purchaseTime = row.purchaseTime || ''
+  projectPurchaseForm.settlementMonth = row.settlementMonth || ''
+  projectPurchaseForm.executor = row.executor || ''
+  isEditingProjectPurchase.value = true
+  currentProjectPurchaseIndex.value = index
+  showProjectPurchaseDialog.value = true
+}
+
+const saveProjectPurchase = () => {
+  if (!projectPurchaseForm.matter) {
+    ElMessage.warning('请填写采购事项')
+    return
+  }
+  if (!projectPurchaseForm.item) {
+    ElMessage.warning('请填写采购物品')
+    return
+  }
+
+  if (isEditingProjectPurchase.value) {
+    projectPurchaseList.value[currentProjectPurchaseIndex.value] = { ...projectPurchaseForm }
+    ElMessage.success('修改成功')
+  } else {
+    projectPurchaseList.value.push({ ...projectPurchaseForm })
+    ElMessage.success('添加成功')
+  }
+
+  showProjectPurchaseDialog.value = false
+}
+
+const deleteProjectPurchase = (index: number) => {
+  projectPurchaseList.value.splice(index, 1)
+  ElMessage.success('删除成功')
+}
+
+const calculateTotalPrice = () => {
+  projectPurchaseForm.totalPrice = projectPurchaseForm.quantity * projectPurchaseForm.unitPrice
+}
 
 // 计算所有唯一的部门
 const departments = computed(() => {
@@ -1662,8 +2842,20 @@ const orderForm = reactive({
   attachment: null
 })
 
-// 人员数据
-const persons = ref([
+// 人员数据 - 从localStorage加载
+const loadPersonsFromStorage = () => {
+  const saved = localStorage.getItem('project_persons')
+  if (saved) {
+    try {
+      return JSON.parse(saved)
+    } catch (e) {
+      return null
+    }
+  }
+  return null
+}
+
+const defaultPersons = [
   {
     name: '张三',
     team: '开发组',
@@ -1675,9 +2867,16 @@ const persons = ref([
     settlementLevel: '高级',
     priceWithTax: 1000,
     priceWithoutTax: 943.4,
-    inputType: '实际' // 投入类型：实际或虚拟
+    inputType: '实际'
   }
-])
+]
+
+const persons = ref(loadPersonsFromStorage() || defaultPersons)
+
+// 监听人员数据变化，自动保存到localStorage
+watch(persons, (newVal) => {
+  localStorage.setItem('project_persons', JSON.stringify(newVal))
+}, { deep: true })
 
 // 人员表单
 const personForm = reactive({
@@ -1727,8 +2926,20 @@ watch([personSearchQuery, selectedDept], () => {
   currentPage.value = 1
 })
 
-// 结算等级配置
-const settlementLevels = ref([
+// 结算等级配置 - 从localStorage加载
+const loadSettlementLevelsFromStorage = () => {
+  const saved = localStorage.getItem('settlement_levels')
+  if (saved) {
+    try {
+      return JSON.parse(saved)
+    } catch (e) {
+      return null
+    }
+  }
+  return null
+}
+
+const defaultSettlementLevels = [
   {
     name: '高级',
     priceWithTax: 1000,
@@ -1744,7 +2955,13 @@ const settlementLevels = ref([
     priceWithTax: 600,
     priceWithoutTax: 566.04
   }
-])
+]
+
+const settlementLevels = ref(loadSettlementLevelsFromStorage() || defaultSettlementLevels)
+
+watch(settlementLevels, (newVal) => {
+  localStorage.setItem('settlement_levels', JSON.stringify(newVal))
+}, { deep: true })
 
 // 立项配置
 const approvalConfig = reactive({
@@ -2024,9 +3241,19 @@ const removeSettlementLevel = (index: number) => {
 }
 
 const saveSettlementConfig = () => {
-  // 这里可以添加保存逻辑，例如发送API请求或保存到localStorage
+  // 更新所有已存在人员的单价
+  persons.value.forEach((person: any) => {
+    if (person.settlementLevel) {
+      const levelConfig = settlementLevels.value.find(level => level.name === person.settlementLevel)
+      if (levelConfig) {
+        person.priceWithTax = levelConfig.priceWithTax
+        person.priceWithoutTax = levelConfig.priceWithoutTax
+      }
+    }
+  })
+  
   console.log('保存结算配置:', settlementLevels.value)
-  ElMessage.success('结算配置保存成功')
+  ElMessage.success('结算配置保存成功，人员单价已更新')
   showSettlementConfigDialog.value = false
 }
 
@@ -2610,6 +3837,7 @@ const calculateWorkDays = (person: any) => {
 const departmentSettlementDataWithTax = computed(() => {
   const data: any = {}
   
+  // 人员结算计算
   persons.value?.forEach((person: any) => {
     const dept = person.settlementDept || '未分配'
     const level = person.settlementLevel || '初级'
@@ -2655,6 +3883,7 @@ const departmentSettlementDataWithTax = computed(() => {
 const departmentSettlementDataWithoutTax = computed(() => {
   const data: any = {}
   
+  // 人员结算计算
   persons.value?.forEach((person: any) => {
     const dept = person.settlementDept || '未分配'
     const level = person.settlementLevel || '初级'
@@ -2802,6 +4031,104 @@ const formatContractPeriod = (period: string | undefined) => {
 // 数字格式化函数
 const formatNumber = (num: number) => {
   return num.toFixed(2)
+}
+
+// 自由计算函数
+const calculateFreeSettlement = () => {
+  if (!freeCalcStartMonth.value || !freeCalcEndMonth.value) {
+    ElMessage.warning('请选择时间周期')
+    return
+  }
+
+  const [startYear, startMonth] = freeCalcStartMonth.value.split('-').map(Number)
+  const [endYear, endMonth] = freeCalcEndMonth.value.split('-').map(Number)
+
+  if (startYear > endYear || (startYear === endYear && startMonth > endMonth)) {
+    ElMessage.warning('开始月份不能晚于结束月份')
+    return
+  }
+
+  const monthList: { year: number; month: number; key: string }[] = []
+  let currentYear = startYear
+  let currentMonth = startMonth
+
+  while (currentYear < endYear || (currentYear === endYear && currentMonth <= endMonth)) {
+    monthList.push({
+      year: currentYear,
+      month: currentMonth,
+      key: `${currentYear}-${currentMonth}`
+    })
+    currentMonth++
+    if (currentMonth > 12) {
+      currentMonth = 1
+      currentYear++
+    }
+  }
+
+  const filteredPersons = persons.value.filter((person: any) => {
+    if (freeCalcDept.value && person.settlementDept !== freeCalcDept.value) {
+      return false
+    }
+    return true
+  })
+
+  const detailMap: Record<string, {
+    dept: string
+    level: string
+    count: number
+    withTax: number
+    withoutTax: number
+    monthlyAmounts: Record<string, number>
+  }> = {}
+
+  let totalWithTax = 0
+  let totalWithoutTax = 0
+
+  filteredPersons.forEach((person: any) => {
+    const dept = person.settlementDept || '未分配'
+    const level = person.settlementLevel || '初级'
+    const key = `${dept}-${level}`
+
+    if (!detailMap[key]) {
+      detailMap[key] = {
+        dept,
+        level,
+        count: 0,
+        withTax: 0,
+        withoutTax: 0,
+        monthlyAmounts: {}
+      }
+    }
+
+    detailMap[key].count++
+
+    monthList.forEach(m => {
+      const workDays = parseFloat(calculateMonthlyWorkDays(person, m))
+      const withTaxAmount = workDays * (person.priceWithTax || 0)
+      const withoutTaxAmount = workDays * (person.priceWithoutTax || 0)
+
+      detailMap[key].withTax += withTaxAmount
+      detailMap[key].withoutTax += withoutTaxAmount
+      detailMap[key].monthlyAmounts[m.key] = (detailMap[key].monthlyAmounts[m.key] || 0) + withTaxAmount
+
+      totalWithTax += withTaxAmount
+      totalWithoutTax += withoutTaxAmount
+    })
+  })
+
+  const detailList = Object.values(detailMap).sort((a, b) => {
+    if (a.dept !== b.dept) return a.dept.localeCompare(b.dept)
+    return a.level.localeCompare(b.level)
+  })
+
+  freeCalcResult.value = {
+    withTax: totalWithTax,
+    withoutTax: totalWithoutTax,
+    monthCount: monthList.length,
+    detailList
+  }
+
+  ElMessage.success('计算完成')
 }
 
 // 检查是否是节假日（简化实现，实际应用中需要从配置或API获取节假日列表）
