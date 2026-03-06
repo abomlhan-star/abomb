@@ -7,7 +7,7 @@
         class="bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all"
         @click="showAddUserDialog = true"
       >
-        <span class="material-symbols-outlined text-sm">add</span>
+        <el-icon class="text-sm"><Plus /></el-icon>
         新增用户
       </button>
     </div>
@@ -64,7 +64,7 @@
                 size="small"
                 @click="handleEdit(row)"
               >
-                <span class="material-symbols-outlined text-sm mr-1">edit</span>
+                <el-icon class="text-sm mr-1"><Edit /></el-icon>
                 编辑
               </el-button>
               <el-button 
@@ -73,7 +73,7 @@
                 size="small"
                 @click="handleResetPassword(row)"
               >
-                <span class="material-symbols-outlined text-sm mr-1">lock_reset</span>
+                <el-icon class="text-sm mr-1"><Lock /></el-icon>
                 重置密码
               </el-button>
               <el-button 
@@ -82,7 +82,7 @@
                 size="small"
                 @click="handleDelete(row)"
               >
-                <span class="material-symbols-outlined text-sm mr-1">delete</span>
+                <el-icon class="text-sm mr-1"><Delete /></el-icon>
                 删除
               </el-button>
             </div>

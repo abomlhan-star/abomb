@@ -1,5 +1,5 @@
 <template>
-  <div class="flex min-h-screen">
+  <div class="flex min-h-screen home-container">
     <!-- 左侧边栏 -->
     <aside class="w-72 border-r border-slate-200 dark:border-slate-800 bg-card-light dark:bg-card-dark flex flex-col fixed h-full z-20">
       <div class="p-6">
@@ -8,20 +8,22 @@
           class="mt-6 w-full flex items-center justify-center gap-2 bg-primary hover:bg-blue-600 text-white py-2.5 px-4 rounded-lg font-medium transition-all shadow-sm"
           @click="showCreateProjectDialog = true"
         >
-          <span class="material-symbols-outlined">add</span>
+          <el-icon><Plus /></el-icon>
           新建项目
         </button>
       </div>
       
       <div class="px-4 mb-4">
         <div class="relative">
-          <span class="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-sm">search</span>
           <input 
             v-model="searchQuery"
-            class="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+            class="w-full pl-10 pr-4 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all shadow-sm"
             placeholder="搜索项目..."
             type="text"
           />
+          <div class="absolute left-3 top-0 bottom-0 flex items-center pointer-events-none">
+            <el-icon class="text-slate-400"><Search /></el-icon>
+          </div>
         </div>
       </div>
       
@@ -65,15 +67,15 @@
             <p class="text-[10px] text-slate-500 truncate">{{ userEmail }}</p>
           </div>
           <el-dropdown trigger="click" placement="top-end">
-            <span class="material-symbols-outlined text-slate-400 cursor-pointer hover:text-primary transition-colors">settings</span>
+            <el-icon class="text-slate-400 cursor-pointer hover:text-primary transition-colors"><Setting /></el-icon>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item v-if="isAdmin" @click="handleEnterManagement">
-                  <span class="material-symbols-outlined text-sm mr-2">admin_panel_settings</span>
+                  <el-icon class="text-sm mr-2"><Management /></el-icon>
                   进入管理
                 </el-dropdown-item>
                 <el-dropdown-item :divided="isAdmin" @click="handleLogout">
-                  <span class="material-symbols-outlined text-sm mr-2 text-red-500">logout</span>
+                  <el-icon class="text-sm mr-2 text-red-500"><SwitchButton /></el-icon>
                   <span class="text-red-500">退出系统</span>
                 </el-dropdown-item>
               </el-dropdown-menu>
@@ -95,21 +97,21 @@
         <div class="flex items-center gap-2 flex-wrap">
           <button class="px-4 py-2 text-sm font-medium bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm"
             @click="showSettlementConfigDialog = true">
-            <span class="material-symbols-outlined text-slate-400">settings</span> 结算配置
+            <el-icon class="text-slate-400"><Setting /></el-icon> 结算配置
           </button>
           <button class="px-4 py-2 text-sm font-medium bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm"
             @click="showApprovalConfigDialog = true">
-            <span class="material-symbols-outlined text-slate-400">assignment</span> 立项配置
+            <el-icon class="text-slate-400"><Document /></el-icon> 立项配置
           </button>
           <button class="px-4 py-2 text-sm font-medium bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm"
             @click="handleEditProject">
-            <span class="material-symbols-outlined text-slate-400">edit</span> 编辑
+            <el-icon class="text-slate-400"><Edit /></el-icon> 编辑
           </button>
           <button class="px-4 py-2 text-sm font-medium bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-all flex items-center gap-2 shadow-sm">
-            <span class="material-symbols-outlined">check_circle</span> 结束项目
+            <el-icon><Check /></el-icon> 结束项目
           </button>
           <button class="px-4 py-2 text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all flex items-center gap-2">
-            <span class="material-symbols-outlined">delete</span> 删除
+            <el-icon><Delete /></el-icon> 删除
           </button>
         </div>
       </header>
@@ -146,7 +148,7 @@
       <section class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800">
         <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
           <h3 class="font-bold flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary">flag</span> 项目重要事项
+            <el-icon class="text-primary"><Warning /></el-icon> 项目重要事项
           </h3>
           <button class="text-xs font-medium text-primary hover:underline" @click="showAddImportantItemDialog = true">添加</button>
         </div>
@@ -171,10 +173,10 @@
             <div class="flex items-center gap-3">
               <span class="text-xs text-slate-400">{{ item.date }}</span>
               <button class="text-primary hover:text-blue-700 transition-colors" @click="editImportantItem(index)">
-                <span class="material-symbols-outlined text-sm">edit</span>
+                <el-icon class="text-sm"><Edit /></el-icon>
               </button>
               <button class="text-slate-400 hover:text-red-500 transition-colors" @click="deleteImportantItem(index)">
-                <span class="material-symbols-outlined text-sm">delete</span>
+                <el-icon class="text-sm"><Delete /></el-icon>
               </button>
             </div>
           </div>
@@ -185,7 +187,7 @@
       <section class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
           <h3 class="font-bold flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary">analytics</span> 财务数据分析
+            <el-icon class="text-primary"><DataAnalysis /></el-icon> 财务数据分析
           </h3>
         </div>
         <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -239,7 +241,7 @@
         <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
           <div class="flex items-center gap-6">
             <h3 class="font-bold flex items-center gap-2">
-              <span class="material-symbols-outlined text-primary">description</span> 合同管理
+              <el-icon class="text-primary"><Document /></el-icon> 合同管理
             </h3>
             <div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
               <button 
@@ -259,7 +261,7 @@
             @click="showAddContractDialog = true"
             :disabled="currentContractType === 'main' && mainContractExists"
           >
-            <span class="material-symbols-outlined text-sm">add</span> 添加合同
+            <el-icon class="text-sm"><Plus /></el-icon> 添加合同
           </button>
         </div>
         <div class="overflow-x-auto">
@@ -288,7 +290,7 @@
                     class="text-primary hover:text-blue-700 transition-colors flex items-center gap-1"
                     @click="previewAttachment(contract.attachment)"
                   >
-                    <span class="material-symbols-outlined text-sm">description</span>
+                    <el-icon class="text-sm"><Document /></el-icon>
                     <span class="text-xs">预览</span>
                   </button>
                   <span v-else class="text-slate-400 text-xs">无附件</span>
@@ -296,10 +298,10 @@
                 <td class="px-6 py-4">
                   <div class="flex items-center justify-center gap-4">
                     <button class="text-primary hover:text-blue-700 transition-colors" @click="editContract(contract)">
-                      <span class="material-symbols-outlined">edit_square</span>
+                      <el-icon><Edit /></el-icon>
                     </button>
                     <button class="text-slate-400 hover:text-red-500 transition-colors" @click="deleteContract(index)">
-                      <span class="material-symbols-outlined">delete</span>
+                      <el-icon><Delete /></el-icon>
                     </button>
                   </div>
                 </td>
@@ -313,13 +315,13 @@
       <section class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
           <h3 class="font-bold flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary">receipt_long</span> 订单管理
+            <el-icon class="text-primary"><Document /></el-icon> 订单管理
           </h3>
           <button 
             class="px-3 py-1.5 text-xs font-medium bg-primary text-white rounded-lg flex items-center gap-1 shadow-sm"
             @click="showAddOrderDialog = true"
           >
-            <span class="material-symbols-outlined text-sm">add</span> 新增订单
+            <el-icon class="text-sm"><Plus /></el-icon> 新增订单
           </button>
         </div>
         <div class="overflow-x-auto">
@@ -345,7 +347,7 @@
                       class="text-primary hover:text-blue-700 transition-colors flex items-center gap-1"
                       @click="previewOrderAttachment(order.attachment)"
                     >
-                      <span class="material-symbols-outlined text-sm">description</span>
+                      <el-icon class="text-sm"><Document /></el-icon>
                       <span class="text-xs">预览</span>
                     </button>
                     <button 
@@ -353,7 +355,7 @@
                       class="text-slate-600 hover:text-blue-700 transition-colors flex items-center gap-1"
                       @click="downloadOrderAttachment(order.attachment)"
                     >
-                      <span class="material-symbols-outlined text-sm">download</span>
+                      <el-icon class="text-sm"><Download /></el-icon>
                       <span class="text-xs">下载</span>
                     </button>
                     <span v-else class="text-slate-400 text-xs">无附件</span>
@@ -362,10 +364,10 @@
                 <td class="px-6 py-4">
                   <div class="flex items-center justify-center gap-4">
                     <button class="text-primary hover:text-blue-700 transition-colors" @click="editOrder(order)">
-                      <span class="material-symbols-outlined">edit_square</span>
+                      <el-icon><Edit /></el-icon>
                     </button>
                     <button class="text-slate-400 hover:text-red-500 transition-colors" @click="deleteOrder(index)">
-                      <span class="material-symbols-outlined">delete</span>
+                      <el-icon><Delete /></el-icon>
                     </button>
                   </div>
                 </td>
@@ -383,17 +385,19 @@
       >
         <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/20">
           <h3 class="font-bold flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary">group</span> 项目人员管理
+            <el-icon class="text-primary"><UserFilled /></el-icon> 项目人员管理
           </h3>
           <div class="flex flex-wrap items-center gap-3">
             <div class="relative">
-              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
               <input 
                 v-model="personSearchQuery"
-                class="pl-9 pr-4 py-1.5 text-xs border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg focus:ring-primary focus:border-primary w-48 md:w-64"
+                class="pl-9 pr-4 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all shadow-sm w-48 md:w-64"
                 placeholder="搜索人员/岗位..."
                 type="text"
               />
+              <div class="absolute left-3 top-0 bottom-0 flex items-center pointer-events-none">
+                <el-icon class="text-slate-400 text-sm"><Search /></el-icon>
+              </div>
             </div>
             <div class="flex flex-wrap gap-2">
               <button 
@@ -430,19 +434,21 @@
               class="border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1"
               @click="toggleFullscreen"
             >
-              <span class="material-symbols-outlined text-[16px]">{{ isFullscreen ? 'fullscreen_exit' : 'fullscreen' }}</span> {{ isFullscreen ? '退出全屏' : '全屏' }}
+              <el-icon v-if="!isFullscreen" class="text-[16px]"><FullScreen /></el-icon>
+              <el-icon v-else class="text-[16px]"><SwitchButton /></el-icon>
+              {{ isFullscreen ? '退出全屏' : '全屏' }}
             </button>
             <button 
               class="border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1"
               @click="downloadPersonList"
             >
-              <span class="material-symbols-outlined text-[16px]">download</span> 下载
+              <el-icon class="text-[16px]"><Download /></el-icon> 下载
             </button>
             <button 
               class="bg-primary hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1"
               @click="showAddPersonDialog = true"
             >
-              <span class="material-symbols-outlined text-[16px]">person_add</span> 添加人员
+              <el-icon class="text-[16px]"><Plus /></el-icon> 添加人员
             </button>
           </div>
         </div>
@@ -681,7 +687,7 @@
             class="text-slate-400 hover:text-slate-600 transition-colors"
             @click="showSettlementConfigDialog = false"
           >
-            <span class="material-symbols-outlined">close</span>
+            <el-icon><Close /></el-icon>
           </button>
         </div>
         
@@ -728,7 +734,7 @@
                     class="px-3 py-2 text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all"
                     @click="removeSettlementLevel(index)"
                   >
-                    <span class="material-symbols-outlined text-sm">delete</span>
+                    <el-icon class="text-sm"><Delete /></el-icon>
                   </button>
                 </div>
               </div>
@@ -737,7 +743,7 @@
                 class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-dashed border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-md transition-all"
                 @click="addSettlementLevel"
               >
-                <span class="material-symbols-outlined text-sm">add</span>
+                <el-icon class="text-sm"><Plus /></el-icon>
                 添加结算等级
               </button>
             </div>
@@ -770,7 +776,7 @@
             class="text-slate-400 hover:text-slate-600 transition-colors"
             @click="showEditProjectDialog = false"
           >
-            <span class="material-symbols-outlined">close</span>
+            <el-icon><Close /></el-icon>
           </button>
         </div>
         <div class="space-y-4">
@@ -851,7 +857,7 @@
             class="text-slate-400 hover:text-slate-600 transition-colors"
             @click="showApprovalConfigDialog = false"
           >
-            <span class="material-symbols-outlined">close</span>
+            <el-icon><Close /></el-icon>
           </button>
         </div>
         
@@ -891,7 +897,7 @@
                     class="text-slate-400 hover:text-red-500 transition-colors"
                     @click="removeSettlementPeriod(index)"
                   >
-                    <span class="material-symbols-outlined text-sm">delete</span>
+                    <el-icon class="text-sm"><Delete /></el-icon>
                   </button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -936,7 +942,7 @@
                 class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-dashed border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-md transition-all"
                 @click="addSettlementPeriod"
               >
-                <span class="material-symbols-outlined text-sm">add</span>
+                <el-icon class="text-sm"><Plus /></el-icon>
                 添加结算周期
               </button>
             </div>
@@ -969,7 +975,7 @@
             class="text-slate-400 hover:text-slate-600 transition-colors"
             @click="showAddImportantItemDialog = false"
           >
-            <span class="material-symbols-outlined">close</span>
+            <el-icon><Close /></el-icon>
           </button>
         </div>
         <div class="space-y-4">
@@ -1023,7 +1029,7 @@
             class="text-slate-400 hover:text-slate-600 transition-colors"
             @click="showAddContractDialog = false"
           >
-            <span class="material-symbols-outlined">close</span>
+            <el-icon><Close /></el-icon>
           </button>
         </div>
         <div class="space-y-4">
@@ -1099,7 +1105,7 @@
                 for="file-upload"
                 class="flex-1 px-4 py-2 border border-dashed border-slate-300 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all cursor-pointer text-center"
               >
-                <span class="material-symbols-outlined text-slate-400 mb-1">upload_file</span>
+                <el-icon class="text-slate-400 mb-1"><Upload /></el-icon>
                 <p class="text-sm text-slate-500">点击或拖拽文件到此处上传</p>
               </label>
             </div>
@@ -1132,7 +1138,7 @@
             class="text-slate-400 hover:text-slate-600 transition-colors"
             @click="showAddOrderDialog = false"
           >
-            <span class="material-symbols-outlined">close</span>
+            <el-icon><Close /></el-icon>
           </button>
         </div>
         <div class="space-y-4">
@@ -1185,7 +1191,7 @@
                 for="order-file-upload"
                 class="flex-1 px-4 py-2 border border-dashed border-slate-300 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all cursor-pointer text-center"
               >
-                <span class="material-symbols-outlined text-slate-400 mb-1">upload_file</span>
+                <el-icon class="text-slate-400 mb-1"><Upload /></el-icon>
                 <p class="text-sm text-slate-500">点击或拖拽文件到此处上传</p>
               </label>
             </div>
@@ -1218,7 +1224,7 @@
             class="text-slate-400 hover:text-slate-600 transition-colors"
             @click="showAddPersonDialog = false"
           >
-            <span class="material-symbols-outlined">close</span>
+            <el-icon><Close /></el-icon>
           </button>
         </div>
         <div class="space-y-4">
@@ -2470,3 +2476,9 @@ const isHoliday = (date: Date) => {
   return holidays.includes(dateStr)
 }
 </script>
+
+<style scoped>
+.home-container {
+  background-color: #f5f7fa;
+}
+</style>

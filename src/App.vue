@@ -1,7 +1,5 @@
 <template>
-  <div class="app-container">
-    <router-view />
-  </div>
+  <router-view />
 </template>
 
 <script setup lang="ts">
@@ -9,8 +7,5 @@
 </script>
 
 <style scoped>
-.app-container {
-  min-height: 100vh;
-  background-color: #f5f7fa;
-}
+/* 全局样式移至非登录页面 */
 </style>

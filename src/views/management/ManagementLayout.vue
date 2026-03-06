@@ -8,7 +8,7 @@
             class="flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-primary transition-colors"
             @click="goBack"
           >
-            <span class="material-symbols-outlined">arrow_back</span>
+            <el-icon><ArrowLeft /></el-icon>
             <span class="text-sm font-medium">返回项目管理</span>
           </button>
           <div class="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
@@ -21,7 +21,7 @@
             :class="currentRoute === 'users' ? 'bg-primary text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'"
             @click="navigateTo('users')"
           >
-            <span class="material-symbols-outlined text-sm mr-1">group</span>
+            <el-icon class="text-sm mr-1"><UserFilled /></el-icon>
             用户管理
           </button>
         </nav>
@@ -32,7 +32,7 @@
             class="text-slate-400 hover:text-red-500 transition-colors"
             @click="handleLogout"
           >
-            <span class="material-symbols-outlined">logout</span>
+            <el-icon><SwitchButton /></el-icon>
           </button>
         </div>
       </div>
