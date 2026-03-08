@@ -712,10 +712,7 @@
             </el-table-column>
           </el-table>
 
-          <div v-if="projectPurchaseList.length === 0" class="text-center py-8 text-slate-400 dark:text-slate-500">
-            <el-icon class="text-4xl mb-2"><ShoppingCart /></el-icon>
-            <p>暂无采购数据，点击上方按钮新增</p>
-          </div>
+
 
           <div v-if="projectPurchaseList.length > 0" class="mt-4 flex justify-end gap-4">
             <div class="bg-slate-100 dark:bg-slate-800 rounded-lg px-6 py-3">
@@ -941,10 +938,6 @@
             </el-table>
           </div>
 
-          <div v-if="!freeCalcStartMonth || !freeCalcEndMonth" class="text-center py-8 text-slate-400 dark:text-slate-500">
-            <el-icon class="text-4xl mb-2"><Calendar /></el-icon>
-            <p>请选择时间周期后进行计算</p>
-          </div>
         </div>
       </section>
 
@@ -1005,11 +998,6 @@
               </template>
             </el-table-column>
           </el-table>
-
-          <div v-if="monthlyCostList.length === 0" class="text-center py-8 text-slate-400 dark:text-slate-500">
-            <el-icon class="text-4xl mb-2"><Coin /></el-icon>
-            <p>暂无月成本数据，点击上方按钮新增</p>
-          </div>
 
           <div v-if="monthlyCostList.length > 0" class="mt-4 flex justify-end">
             <div class="bg-slate-100 dark:bg-slate-800 rounded-lg px-6 py-3">
@@ -1073,11 +1061,6 @@
               </template>
             </el-table-column>
           </el-table>
-
-          <div v-if="actualSettlementList.length === 0" class="text-center py-8 text-slate-400 dark:text-slate-500">
-            <el-icon class="text-4xl mb-2"><Wallet /></el-icon>
-            <p>暂无实际结算数据，点击上方按钮新增</p>
-          </div>
 
           <div v-if="actualSettlementList.length > 0" class="mt-4 flex justify-end gap-6">
             <div class="bg-slate-100 dark:bg-slate-800 rounded-lg px-6 py-3">
@@ -3268,10 +3251,15 @@ const loadProjects = async () => {
       if (projectList.value.length > 0) {
         currentProject.value = projectList.value[0]
       }
+    } else {
+      // 后端返回空列表，说明没有项目，清空 localStorage
+      projectList.value = []
+      currentProject.value = null
+      localStorage.removeItem('project_list')
     }
   } catch (error) {
     console.error('加载项目列表失败:', error)
-    // 如果加载失败，使用localStorage中的数据
+    // 如果加载失败，使用 localStorage 中的数据
     const saved = localStorage.getItem('project_list')
     if (saved) {
       try {
@@ -3280,8 +3268,12 @@ const loadProjects = async () => {
           currentProject.value = projectList.value[0]
         }
       } catch (e) {
-        console.error('解析localStorage数据失败:', e)
+        console.error('解析 localStorage 数据失败:', e)
       }
+    } else {
+      // localStorage 也没有数据，使用默认值
+      projectList.value = defaultProjects
+      currentProject.value = defaultProjects[0]
     }
   }
 }
@@ -3536,11 +3528,8 @@ const handleDeleteProject = () => {
       if (projectIndex !== -1) {
         projectList.value.splice(projectIndex, 1)
         
-        if (projectList.value.length > 0) {
-          currentProject.value = filteredProjects.value[0]
-        } else {
-          currentProject.value = null
-        }
+        // 重新从后端加载项目列表，确保数据一致性
+        await loadProjects()
         
         ElMessage.success('项目已删除')
       }
