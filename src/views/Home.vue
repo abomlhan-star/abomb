@@ -205,46 +205,66 @@
             <el-icon class="text-primary"><DataAnalysis /></el-icon> 财务数据分析
           </h3>
         </div>
-        <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div class="space-y-6">
-            <div class="flex justify-between items-start">
-              <div>
-                <p class="text-xs font-medium text-slate-500 mb-1">当前毛利暂估</p>
-                <h4 class="text-2xl font-bold text-blue-600 dark:text-blue-400">¥ {{ formatNumber(currentGrossProfit) }}</h4>
-                <p class="text-[10px] text-slate-400 mt-1">项目整体累计结算金额 / 1.06 - 累计成本</p>
-              </div>
-              <div class="text-right">
-                <p class="text-xs font-medium text-slate-500 mb-1">当前毛利率暂估</p>
-                <h4 class="text-2xl font-bold text-green-500">{{ formatNumber(currentGrossMarginRate) }}%</h4>
-              </div>
+        <div class="p-6 space-y-6">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs font-medium text-slate-500 mb-1">当前毛利暂估<span v-if="currentGrossProfitLatestMonth" class="text-slate-400 font-normal">（统计至{{ currentGrossProfitLatestMonth.split('-')[0] + '年' + parseInt(currentGrossProfitLatestMonth.split('-')[1]) + '月' }}）</span></p>
+              <h4 class="text-2xl font-bold text-blue-600 dark:text-blue-400">¥ {{ formatNumber(currentGrossProfit) }}</h4>
+              <p class="text-[10px] text-slate-400 mt-1">项目暂估不含税结算金额 - 项目累计成本</p>
             </div>
-            <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-start">
+            <div class="text-right">
+              <p class="text-xs font-medium text-slate-500 mb-1">当前毛利率暂估</p>
+              <h4 class="text-2xl font-bold text-green-500">{{ formatNumber(currentGrossMarginRate) }}%</h4>
+            </div>
+          </div>
+          <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-start">
+            <div>
+              <p class="text-xs font-medium text-slate-500 mb-1">实际毛利<span v-if="actualGrossProfitLatestMonth" class="text-slate-400 font-normal">（统计至{{ actualGrossProfitLatestMonth }}）</span></p>
+              <h4 class="text-xl font-bold text-blue-600 dark:text-blue-400">¥ {{ formatNumber(actualGrossProfit) }}</h4>
+              <p class="text-[10px] text-slate-400 mt-1">项目实际结算周期不含税金额 - 周期内月成本累计</p>
+            </div>
+            <div class="text-right">
+              <p class="text-xs font-medium text-slate-500 mb-1">实际毛利率</p>
+              <h4 class="text-xl font-bold text-green-500">{{ formatNumber(actualGrossMarginRate) }}%</h4>
+            </div>
+          </div>
+          <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
+            <div class="flex flex-wrap gap-6">
               <div>
-                <p class="text-xs font-medium text-slate-500 mb-1">实际毛利</p>
-                <h4 class="text-xl font-bold text-blue-600 dark:text-blue-400">¥ {{ formatNumber(actualGrossProfit) }}</h4>
+                <p class="text-xs font-medium text-slate-500 mb-1">应结算金额（按立项金额计算）</p>
+                <p class="text-sm font-bold text-blue-600">¥{{ formatNumber(payableSettlement) }}</p>
               </div>
-              <div class="text-right">
-                <p class="text-xs font-medium text-slate-500 mb-1">实际毛利率</p>
-                <h4 class="text-xl font-bold text-green-500">{{ formatNumber(actualGrossMarginRate) }}%</h4>
+              <div>
+                <p class="text-xs font-medium text-slate-500 mb-1">应结算金额（按照订单金额计算）</p>
+                <p class="text-sm font-bold text-blue-600">¥{{ formatNumber(orderSettlement) }}</p>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-slate-500 mb-1">应该产生毛利</p>
+                <p class="text-sm font-bold text-blue-600">¥{{ formatNumber(grossProfitOutput) }}</p>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-slate-500 mb-1">毛利差额</p>
+                <p class="text-sm font-bold" :class="grossProfitDifference >= 0 ? 'text-green-600' : 'text-red-600'">¥{{ formatNumber(grossProfitDifference) }}</p>
+              </div>
+              <div>
+                <p class="text-xs font-medium text-slate-500 mb-1">毛利率差额</p>
+                <p class="text-sm font-bold" :class="grossMarginDifference >= 0 ? 'text-green-600' : 'text-red-600'">{{ formatNumber(grossMarginDifference) }}%</p>
               </div>
             </div>
           </div>
-          <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-xl border border-slate-100 dark:border-slate-800">
-            <p class="text-xs font-medium text-slate-500 mb-2">滚动毛利率暂估</p>
-            <h4 class="text-3xl font-bold text-green-500 mb-3">{{ formatNumber(rollingGrossMarginRate) }}%</h4>
-            <p class="text-[10px] text-slate-400 leading-relaxed">基于人员工时变化与月本数据预估。当前累计结算截止至：{{ new Date().toISOString().split('T')[0] }}</p>
-            <div class="mt-4 grid grid-cols-3 gap-2">
-              <div class="text-center">
-                <p class="text-[9px] text-slate-500 uppercase">应结算额</p>
-                <p class="text-xs font-bold text-blue-600">¥{{ formatNumber(payableSettlement) }}</p>
-              </div>
-              <div class="text-center">
-                <p class="text-[9px] text-slate-500 uppercase">订单结算</p>
-                <p class="text-xs font-bold text-blue-600">¥{{ formatNumber(orderSettlement) }}</p>
-              </div>
-              <div class="text-center">
-                <p class="text-[9px] text-slate-500 uppercase">毛利产出</p>
-                <p class="text-xs font-bold text-blue-600">¥{{ formatNumber(grossProfitOutput) }}</p>
+          <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
+            <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-xl border border-slate-100 dark:border-slate-800">
+              <div class="flex justify-between items-start">
+                <div>
+                  <p class="text-xs font-medium text-slate-500 mb-2">滚动毛利率暂估</p>
+                  <h4 class="text-3xl font-bold text-green-500 mb-3">{{ formatNumber(rollingGrossMarginRate) }}%</h4>
+                  <p class="text-[10px] text-slate-400 leading-relaxed">预估到项目结束的整体毛利率。未录入成本的月份按已有月成本平均值预估。</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-xs font-medium text-slate-500 mb-2">项目结算率</p>
+                  <h4 class="text-3xl font-bold text-blue-600 mb-3">{{ formatNumber(projectSettlementRate) }}%</h4>
+                  <p class="text-[10px] text-slate-400 leading-relaxed">项目结算暂估金额 / 立项金额</p>
+                </div>
               </div>
             </div>
           </div>
@@ -2797,7 +2817,7 @@ const months = computed(() => {
       year: currentYear,
       month: currentMonth,
       label: `${yearShort}年${currentMonth}月`,
-      key: `${currentYear}-${currentMonth}`
+      key: `${currentYear}-${String(currentMonth).padStart(2, '0')}`
     })
     
     currentMonth++
@@ -4390,30 +4410,127 @@ const formatNumber = (num: number) => {
 }
 
 // 财务数据分析计算
-// 当前毛利暂估 = 项目整体累计结算金额 / 1.06 - 累计成本
+// 当前毛利暂估 = 以成本月为周期：项目暂估不含税结算金额 - 项目累计成本
+const currentGrossProfitLatestMonth = computed(() => {
+  const costList = filteredMonthlyCostList.value
+  if (costList.length === 0) {
+    return ''
+  }
+  let latestMonth = ''
+  costList.forEach((item: any) => {
+    if (!latestMonth || item.month > latestMonth) {
+      latestMonth = item.month
+    }
+  })
+  return latestMonth
+})
+
 const currentGrossProfit = computed(() => {
-  // 累计结算金额（从项目结算暂估获取）
-  const totalSettlement = totalProjectAmount.value
-  // 累计成本（从月成本列表获取）
-  const totalCost = totalMonthlyCost.value
-  // 毛利暂估 = 结算金额 / 1.06 - 成本
-  return totalSettlement / 1.06 - totalCost
+  const costList = filteredMonthlyCostList.value
+  if (costList.length === 0) {
+    return 0
+  }
+  const latestMonth = currentGrossProfitLatestMonth.value
+  if (!latestMonth) {
+    return 0
+  }
+  const [latestYear, latestMonthNum] = latestMonth.split('-').map(Number)
+  const monthList: string[] = []
+  months.value.forEach(m => {
+    if (m.year < latestYear || (m.year === latestYear && m.month <= latestMonthNum)) {
+      monthList.push(m.key)
+    }
+  })
+  let periodSettlement = 0
+  Object.values(departmentSettlementDataWithoutTax.value).forEach((deptData: any) => {
+    monthList.forEach(key => {
+      periodSettlement += deptData.monthlyTotals[key] || 0
+    })
+  })
+  const periodCost = filteredMonthlyCostList.value
+    .filter((item: any) => monthList.includes(item.month))
+    .reduce((sum: number, item: any) => {
+      return sum + (item.directCost || 0) + (item.operatingCost || 0) + (item.sharedCost || 0)
+    }, 0)
+  return periodSettlement - periodCost
 })
 
 // 当前毛利率暂估
 const currentGrossMarginRate = computed(() => {
-  const totalSettlement = totalProjectAmount.value
-  if (totalSettlement === 0) return 0
-  return (currentGrossProfit.value / totalSettlement) * 100
+  const costList = filteredMonthlyCostList.value
+  if (costList.length === 0) return 0
+  const latestMonth = currentGrossProfitLatestMonth.value
+  if (!latestMonth) return 0
+  const [latestYear, latestMonthNum] = latestMonth.split('-').map(Number)
+  const monthList: string[] = []
+  months.value.forEach(m => {
+    if (m.year < latestYear || (m.year === latestYear && m.month <= latestMonthNum)) {
+      monthList.push(m.key)
+    }
+  })
+  let periodSettlement = 0
+  Object.values(departmentSettlementDataWithoutTax.value).forEach((deptData: any) => {
+    monthList.forEach(key => {
+      periodSettlement += deptData.monthlyTotals[key] || 0
+    })
+  })
+  if (periodSettlement === 0) return 0
+  return (currentGrossProfit.value / periodSettlement) * 100
 })
 
-// 实际毛利 = 实际结算金额 / 1.06 - 累计成本
+// 实际毛利 = 按项目实际结算周期计算：周期内不含税金额 - 周期内月成本累计
 const actualGrossProfit = computed(() => {
-  // 实际结算金额（从实际结算列表获取）
-  const totalActualSettlement = totalActualSettlementWithoutTax.value
-  // 累计成本
-  const totalCost = totalMonthlyCost.value
-  return totalActualSettlement - totalCost
+  const settlements = filteredActualSettlementList.value
+  if (settlements.length === 0) {
+    return 0
+  }
+  let totalGrossProfit = 0
+  settlements.forEach((settlement: any) => {
+    if (!settlement.period || settlement.period.length !== 2) return
+    const startDate = new Date(settlement.period[0])
+    const endDate = new Date(settlement.period[1])
+    const monthList: string[] = []
+    let currentYear = startDate.getFullYear()
+    let currentMonth = startDate.getMonth() + 1
+    const endYear = endDate.getFullYear()
+    const endMonth = endDate.getMonth() + 1
+    while (currentYear < endYear || (currentYear === endYear && currentMonth <= endMonth)) {
+      monthList.push(`${currentYear}-${String(currentMonth).padStart(2, '0')}`)
+      currentMonth++
+      if (currentMonth > 12) {
+        currentMonth = 1
+        currentYear++
+      }
+    }
+    const periodCost = filteredMonthlyCostList.value
+      .filter((item: any) => monthList.includes(item.month))
+      .reduce((sum: number, item: any) => {
+        return sum + (item.directCost || 0) + (item.operatingCost || 0) + (item.sharedCost || 0)
+      }, 0)
+    const periodSettlement = settlement.amountWithoutTax || 0
+    totalGrossProfit += periodSettlement - periodCost
+  })
+  return totalGrossProfit
+})
+
+// 实际毛利统计到的最新月份
+const actualGrossProfitLatestMonth = computed(() => {
+  const settlements = filteredActualSettlementList.value
+  if (settlements.length === 0) {
+    return ''
+  }
+  let latestMonth = ''
+  settlements.forEach((settlement: any) => {
+    if (!settlement.period || settlement.period.length !== 2) return
+    const endDate = new Date(settlement.period[1])
+    const endYear = endDate.getFullYear()
+    const endMonth = endDate.getMonth() + 1
+    const monthStr = `${endYear}年${endMonth}月`
+    if (!latestMonth || monthStr > latestMonth) {
+      latestMonth = monthStr
+    }
+  })
+  return latestMonth
 })
 
 // 实际毛利率
@@ -4423,25 +4540,159 @@ const actualGrossMarginRate = computed(() => {
   return (actualGrossProfit.value / totalActualSettlement) * 100
 })
 
-// 滚动毛利率暂估（基于人员工时变化与月本数据预估）
+// 滚动毛利率暂估（预估计算到项目结束的整体毛利率）
 const rollingGrossMarginRate = computed(() => {
-  // 使用当前毛利率暂估作为基础
-  return currentGrossMarginRate.value
+  const costList = filteredMonthlyCostList.value
+  const projectMonths = months.value
+  if (projectMonths.length === 0) return 0
+  let totalSettlement = 0
+  Object.values(departmentSettlementDataWithoutTax.value).forEach((deptData: any) => {
+    projectMonths.forEach(m => {
+      totalSettlement += deptData.monthlyTotals[m.key] || 0
+    })
+  })
+  if (totalSettlement === 0) return 0
+  let totalCost = 0
+  if (costList.length > 0) {
+    const existingCostMonths = costList.map((item: any) => item.month)
+    const existingCost = costList.reduce((sum: number, item: any) => {
+      return sum + (item.directCost || 0) + (item.operatingCost || 0) + (item.sharedCost || 0)
+    }, 0)
+    totalCost += existingCost
+    const avgMonthlyCost = existingCost / costList.length
+    const missingMonths = projectMonths.filter((m: any) => !existingCostMonths.includes(m.key))
+    totalCost += missingMonths.length * avgMonthlyCost
+  }
+  return ((totalSettlement - totalCost) / totalSettlement) * 100
 })
 
-// 应结算额（从项目结算暂估获取）
+// 计算日期范围内的工作日天数
+const calculateWorkDaysInRange = (startDate: Date, endDate: Date) => {
+  let workDays = 0
+  const currentDate = new Date(startDate)
+  while (currentDate <= endDate) {
+    const dayOfWeek = currentDate.getDay()
+    if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isHoliday(currentDate)) {
+      workDays++
+    }
+    currentDate.setDate(currentDate.getDate() + 1)
+  }
+  return workDays
+}
+
+// 应结算额（根据当前时间计算应结算周期的暂估金额）
 const payableSettlement = computed(() => {
-  return totalProjectAmount.value
+  const approvalAmount = parseFloat(String(currentProject.value?.approvalAmount || '0').replace(/,/g, '')) || 0
+  if (approvalAmount === 0) return 0
+  const contractPeriod = currentProject.value?.contractPeriod || '2026-01-01 ~ 2026-12-31'
+  const [contractStartStr, contractEndStr] = contractPeriod.split(' ~ ')
+  const contractStart = new Date(contractStartStr)
+  let contractEndStrFull = contractEndStr
+  if (contractEndStr.indexOf('-') === 2) {
+    const year = contractStart.getFullYear()
+    contractEndStrFull = `${year}-${contractEndStr}`
+  }
+  const contractEnd = new Date(contractEndStrFull)
+  const totalWorkDays = calculateWorkDaysInRange(contractStart, contractEnd)
+  if (totalWorkDays === 0) return 0
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth() + 1
+  const currentQuarter = Math.ceil(currentMonth / 3)
+  const quartersCompleted = currentQuarter - 1
+  if (quartersCompleted === 0) return 0
+  let settlementWorkDays = 0
+  for (let q = 1; q <= quartersCompleted; q++) {
+    const startMonth = (q - 1) * 3 + 1
+    const endMonth = q * 3
+    const periodStart = new Date(currentYear, startMonth - 1, 1)
+    const periodEnd = new Date(currentYear, endMonth, 0)
+    settlementWorkDays += calculateWorkDaysInRange(periodStart, periodEnd)
+  }
+  return (approvalAmount / totalWorkDays) * settlementWorkDays
 })
 
-// 订单结算（从项目采购获取）
+// 应结算毛利率
+const payableSettlementMarginRate = computed(() => {
+  const settlementAmount = payableSettlement.value
+  if (settlementAmount === 0) return 0
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth() + 1
+  const currentQuarter = Math.ceil(currentMonth / 3)
+  const quartersCompleted = currentQuarter - 1
+  if (quartersCompleted === 0) return 0
+  const settlementMonths: string[] = []
+  for (let q = 1; q <= quartersCompleted; q++) {
+    const startMonth = (q - 1) * 3 + 1
+    const endMonth = q * 3
+    for (let m = startMonth; m <= endMonth; m++) {
+      settlementMonths.push(`${currentYear}-${String(m).padStart(2, '0')}`)
+    }
+  }
+  const periodCost = filteredMonthlyCostList.value
+    .filter((item: any) => settlementMonths.includes(item.month))
+    .reduce((sum: number, item: any) => {
+      return sum + (item.directCost || 0) + (item.operatingCost || 0) + (item.sharedCost || 0)
+    }, 0)
+  return ((settlementAmount - periodCost) / settlementAmount) * 100
+})
+
+// 订单结算（根据当前时间计算应结算周期的订单金额）
 const orderSettlement = computed(() => {
-  return totalPurchaseSettlementAmount.value
+  const totalOrderAmount = totalPurchaseSettlementAmount.value
+  if (totalOrderAmount === 0) return 0
+  const contractPeriod = currentProject.value?.contractPeriod || '2026-01-01 ~ 2026-12-31'
+  const [contractStartStr, contractEndStr] = contractPeriod.split(' ~ ')
+  const contractStart = new Date(contractStartStr)
+  let contractEndStrFull = contractEndStr
+  if (contractEndStr.indexOf('-') === 2) {
+    const year = contractStart.getFullYear()
+    contractEndStrFull = `${year}-${contractEndStr}`
+  }
+  const contractEnd = new Date(contractEndStrFull)
+  const totalWorkDays = calculateWorkDaysInRange(contractStart, contractEnd)
+  if (totalWorkDays === 0) return 0
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth() + 1
+  const currentQuarter = Math.ceil(currentMonth / 3)
+  const quartersCompleted = currentQuarter - 1
+  if (quartersCompleted === 0) return 0
+  let settlementWorkDays = 0
+  for (let q = 1; q <= quartersCompleted; q++) {
+    const startMonth = (q - 1) * 3 + 1
+    const endMonth = q * 3
+    const periodStart = new Date(currentYear, startMonth - 1, 1)
+    const periodEnd = new Date(currentYear, endMonth, 0)
+    settlementWorkDays += calculateWorkDaysInRange(periodStart, periodEnd)
+  }
+  return (totalOrderAmount / totalWorkDays) * settlementWorkDays
 })
 
-// 毛利产出
+// 应该产生毛利
 const grossProfitOutput = computed(() => {
-  return currentGrossProfit.value
+  const grossMargin = parseFloat(String(currentProject.value?.grossMargin || '0')) / 100
+  return payableSettlement.value / 1.06 * grossMargin
+})
+
+// 毛利率差额
+const grossProfitDifference = computed(() => {
+  return grossProfitOutput.value - actualGrossProfit.value
+})
+
+// 毛利率差额（率差）
+const grossMarginDifference = computed(() => {
+  const approvalGrossMargin = parseFloat(String(currentProject.value?.grossMargin || '0'))
+  return approvalGrossMargin - actualGrossMarginRate.value
+})
+
+// 项目结算率
+const projectSettlementRate = computed(() => {
+  const approvalAmount = parseFloat(String(currentProject.value?.approvalAmount || '0').replace(/,/g, '')) || 0
+  if (approvalAmount === 0) return 0
+  const totalProjectSettlement = totalProjectAmount.value
+  return (totalProjectSettlement / approvalAmount) * 100
 })
 
 // 自由计算函数
