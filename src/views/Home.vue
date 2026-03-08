@@ -1,7 +1,7 @@
 <template>
-  <div class="flex min-h-screen home-container">
+  <div class="home-container">
     <!-- 左侧边栏 -->
-    <aside class="w-72 border-r border-slate-200 dark:border-slate-800 bg-card-light dark:bg-card-dark flex flex-col fixed h-full z-20">
+    <aside class="sidebar">
       <div class="p-6">
         <h1 class="text-xl font-bold tracking-tight">成研运营系统</h1>
         <button 
@@ -91,7 +91,7 @@
     </aside>
 
     <!-- 右侧主内容区域 -->
-    <main class="ml-72 flex-1 p-8 pb-20 space-y-8 max-w-full overflow-x-hidden">
+    <main class="main-content">
       <header class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="flex items-center gap-3">
           <h2 class="text-2xl font-bold tracking-tight">{{ currentProject?.label || '请选择项目' }}</h2>
@@ -132,7 +132,7 @@
       </header>
 
       <!-- 项目概览卡片 -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 min-w-[1380px] max-w-[6000px] w-full mt-6 mb-6">
         <div class="bg-card-light dark:bg-card-dark p-5 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800">
           <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">项目类型</p>
           <h3 class="text-lg font-bold">{{ currentProject?.type || '运营类' }}</h3>
@@ -160,7 +160,7 @@
       </div>
 
       <!-- 项目重要事项 -->
-      <section class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800">
+      <section class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 min-w-[1380px] max-w-[6000px] w-full">
         <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
           <h3 class="font-bold flex items-center gap-2">
             <el-icon class="text-primary"><Warning /></el-icon> 项目重要事项
@@ -199,7 +199,7 @@
       </section>
 
       <!-- 财务数据分析 -->
-      <section class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden">
+      <section class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden min-w-[1380px] max-w-[6000px] w-full">
         <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
           <h3 class="font-bold flex items-center gap-2">
             <el-icon class="text-primary"><DataAnalysis /></el-icon> 财务数据分析
@@ -252,7 +252,7 @@
       </section>
 
       <!-- 合同管理 -->
-      <section class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden">
+      <section class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden min-w-[1380px] max-w-[6000px] w-full">
         <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
           <div class="flex items-center gap-6">
             <h3 class="font-bold flex items-center gap-2">
@@ -327,7 +327,7 @@
       </section>
 
       <!-- 订单管理 -->
-      <section class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden">
+      <section class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden min-w-[1380px] max-w-[6000px] w-full">
         <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
           <h3 class="font-bold flex items-center gap-2">
             <el-icon class="text-primary"><Document /></el-icon> 订单管理
@@ -395,8 +395,7 @@
       <!-- 人员管理 -->
       <section 
         ref="fullscreenRef"
-        class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden" 
-        style="width: 1280px;"
+        class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden min-w-[1380px] max-w-[6000px] w-full"
       >
         <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/20">
           <h3 class="font-bold flex items-center gap-2">
@@ -627,8 +626,7 @@
 
       <!-- 项目采购列表 -->
       <section 
-        class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden mt-6"
-        style="width: 1280px;"
+        class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden mt-6 min-w-[1380px] max-w-[6000px] w-full"
       >
         <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/20">
           <h3 class="font-bold flex items-center gap-2">
@@ -716,8 +714,7 @@
 
       <!-- 项目结算暂估 -->
       <section 
-        class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden"
-        style="width: 1280px;"
+        class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden min-w-[1380px] max-w-[6000px] w-full"
       >
         <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/20">
           <h3 class="font-bold flex items-center gap-2">
@@ -799,8 +796,7 @@
 
       <!-- 自由计算模块 -->
       <section 
-        class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden mt-6"
-        style="width: 1280px;"
+        class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden mt-6 min-w-[1380px] max-w-[6000px] w-full"
       >
         <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/20">
           <h3 class="font-bold flex items-center gap-2">
@@ -930,8 +926,7 @@
 
       <!-- 月成本列表 -->
       <section 
-        class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden mt-6"
-        style="width: 1280px;"
+        class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden mt-6 min-w-[1380px] max-w-[6000px] w-full"
       >
         <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/20">
           <h3 class="font-bold flex items-center gap-2">
@@ -1003,8 +998,7 @@
 
       <!-- 项目实际结算列表 -->
       <section 
-        class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden mt-6"
-        style="width: 1280px;"
+        class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden mt-6 min-w-[1380px] max-w-[6000px] w-full"
       >
         <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/20">
           <h3 class="font-bold flex items-center gap-2">
@@ -4561,6 +4555,46 @@ const isHoliday = (date: Date) => {
 
 <style scoped>
 .home-container {
+  display: grid;
+  grid-template-columns: 288px 1fr;
+  min-height: 100vh;
+  width: 100%;
+  min-width: 1380px;
   background-color: #f5f7fa;
+}
+
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: 288px;
+  border-right: 1px solid rgba(148, 163, 184, 0.2);
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dark .sidebar {
+  background-color: #1e293b;
+  border-right-color: rgba(51, 65, 85, 0.5);
+}
+
+.main-content {
+  grid-column: 2;
+  padding: 2rem;
+  padding-bottom: 5rem;
+  overflow-x: auto;
+  min-width: 0;
+}
+
+/* 增加列表模块之间的间距 */
+.main-content > section {
+  margin-bottom: 2.5rem;
+}
+
+.main-content > section:last-child {
+  margin-bottom: 0;
 }
 </style>
