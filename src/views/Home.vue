@@ -47,7 +47,12 @@
             ]">
               {{ project.label }}
             </span>
-            <span class="px-2 py-0.5 text-[10px] bg-blue-100 dark:bg-blue-800 text-primary rounded-full">
+            <span :class="[
+              'px-2 py-0.5 text-[10px] rounded-full',
+              project.status === '已结束' 
+                ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400' 
+                : 'bg-blue-100 dark:bg-blue-800 text-primary'
+            ]">
               {{ project.status }}
             </span>
           </div>
@@ -90,7 +95,12 @@
       <header class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="flex items-center gap-3">
           <h2 class="text-2xl font-bold tracking-tight">{{ currentProject?.label || '请选择项目' }}</h2>
-          <span class="px-3 py-1 text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-primary rounded-full border border-blue-100 dark:border-blue-800">
+          <span :class="[
+            'px-3 py-1 text-xs font-medium rounded-full border',
+            currentProject?.status === '已结束'
+              ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+              : 'bg-blue-50 dark:bg-blue-900/30 text-primary border-blue-100 dark:border-blue-800'
+          ]">
             {{ currentProject?.status || '进行中' }}
           </span>
         </div>
@@ -107,10 +117,15 @@
             @click="handleEditProject">
             <el-icon class="text-slate-400"><Edit /></el-icon> 编辑
           </button>
-          <button class="px-4 py-2 text-sm font-medium bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-all flex items-center gap-2 shadow-sm">
+          <button 
+            v-if="currentProject?.status !== '已结束'"
+            class="px-4 py-2 text-sm font-medium bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-all flex items-center gap-2 shadow-sm"
+            @click="handleEndProject">
             <el-icon><Check /></el-icon> 结束项目
           </button>
-          <button class="px-4 py-2 text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all flex items-center gap-2">
+          <button 
+            class="px-4 py-2 text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all flex items-center gap-2"
+            @click="handleDeleteProject">
             <el-icon><Delete /></el-icon> 删除
           </button>
         </div>
@@ -154,7 +169,7 @@
         </div>
         <div class="divide-y divide-slate-100 dark:divide-slate-800">
           <div 
-            v-for="(item, index) in importantItems" 
+            v-for="(item, index) in filteredImportantItems" 
             :key="index"
             class="px-6 py-4 flex items-center justify-between group"
           >
@@ -195,41 +210,41 @@
             <div class="flex justify-between items-start">
               <div>
                 <p class="text-xs font-medium text-slate-500 mb-1">当前毛利暂估</p>
-                <h4 class="text-2xl font-bold text-blue-600 dark:text-blue-400">¥ -501,415.09</h4>
+                <h4 class="text-2xl font-bold text-blue-600 dark:text-blue-400">¥ {{ formatNumber(currentGrossProfit) }}</h4>
                 <p class="text-[10px] text-slate-400 mt-1">项目整体累计结算金额 / 1.06 - 累计成本</p>
               </div>
               <div class="text-right">
                 <p class="text-xs font-medium text-slate-500 mb-1">当前毛利率暂估</p>
-                <h4 class="text-2xl font-bold text-green-500">-2126.00%</h4>
+                <h4 class="text-2xl font-bold text-green-500">{{ formatNumber(currentGrossMarginRate) }}%</h4>
               </div>
             </div>
             <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-start">
               <div>
                 <p class="text-xs font-medium text-slate-500 mb-1">实际毛利</p>
-                <h4 class="text-xl font-bold text-blue-600 dark:text-blue-400">¥ 261,164.15</h4>
+                <h4 class="text-xl font-bold text-blue-600 dark:text-blue-400">¥ {{ formatNumber(actualGrossProfit) }}</h4>
               </div>
               <div class="text-right">
                 <p class="text-xs font-medium text-slate-500 mb-1">实际毛利率</p>
-                <h4 class="text-xl font-bold text-green-500">33.22%</h4>
+                <h4 class="text-xl font-bold text-green-500">{{ formatNumber(actualGrossMarginRate) }}%</h4>
               </div>
             </div>
           </div>
           <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-xl border border-slate-100 dark:border-slate-800">
             <p class="text-xs font-medium text-slate-500 mb-2">滚动毛利率暂估</p>
-            <h4 class="text-3xl font-bold text-green-500 mb-3">-2126.00%</h4>
-            <p class="text-[10px] text-slate-400 leading-relaxed">基于人员工时变化与月本数据预估。当前累计结算截止至：2026-02-28</p>
+            <h4 class="text-3xl font-bold text-green-500 mb-3">{{ formatNumber(rollingGrossMarginRate) }}%</h4>
+            <p class="text-[10px] text-slate-400 leading-relaxed">基于人员工时变化与月本数据预估。当前累计结算截止至：{{ new Date().toISOString().split('T')[0] }}</p>
             <div class="mt-4 grid grid-cols-3 gap-2">
               <div class="text-center">
                 <p class="text-[9px] text-slate-500 uppercase">应结算额</p>
-                <p class="text-xs font-bold text-blue-600">¥0.00</p>
+                <p class="text-xs font-bold text-blue-600">¥{{ formatNumber(payableSettlement) }}</p>
               </div>
               <div class="text-center">
                 <p class="text-[9px] text-slate-500 uppercase">订单结算</p>
-                <p class="text-xs font-bold text-blue-600">¥0.00</p>
+                <p class="text-xs font-bold text-blue-600">¥{{ formatNumber(orderSettlement) }}</p>
               </div>
               <div class="text-center">
                 <p class="text-[9px] text-slate-500 uppercase">毛利产出</p>
-                <p class="text-xs font-bold text-blue-600">¥0.00</p>
+                <p class="text-xs font-bold text-blue-600">¥{{ formatNumber(grossProfitOutput) }}</p>
               </div>
             </div>
           </div>
@@ -336,7 +351,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-              <tr v-for="(order, index) in orders" :key="index">
+              <tr v-for="(order, index) in filteredOrders" :key="index">
                 <td class="px-6 py-4 text-slate-500 uppercase text-xs">{{ order.code }}</td>
                 <td class="px-6 py-4 text-xs">{{ order.period }}</td>
                 <td class="px-6 py-4 text-xs">{{ order.orderDate }}</td>
@@ -630,7 +645,7 @@
         
         <div class="p-6">
           <el-table
-            :data="projectPurchaseList"
+            :data="filteredProjectPurchaseList"
             border
             stripe
           >
@@ -933,7 +948,7 @@
         
         <div class="p-6">
           <el-table
-            :data="monthlyCostList"
+            :data="filteredMonthlyCostList"
             border
             stripe
           >
@@ -1006,7 +1021,7 @@
         
         <div class="p-6">
           <el-table
-            :data="actualSettlementList"
+            :data="filteredActualSettlementList"
             border
             stripe
           >
@@ -1523,7 +1538,7 @@
             <h4 class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">结算等级配置</h4>
             <div class="space-y-4">
               <div 
-                v-for="(level, index) in settlementLevels" 
+                v-for="(level, index) in filteredSettlementLevels" 
                 :key="index"
                 class="grid grid-cols-4 gap-4 items-center p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg"
               >
@@ -2197,8 +2212,9 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import * as XLSX from 'xlsx'
+import { projectApi, dataApi } from '../api'
 
 const router = useRouter()
 const username = ref('')
@@ -2382,6 +2398,7 @@ const freeCalcResult = ref<{
 
 // 月成本列表相关
 const monthlyCostList = ref<Array<{
+  project_id: number
   month: string
   directCost: number
   operatingCost: number
@@ -2397,8 +2414,13 @@ const monthlyCostForm = reactive({
   sharedCost: 0
 })
 
+// 过滤后的月成本列表
+const filteredMonthlyCostList = computed(() => {
+  return monthlyCostList.value.filter(item => item.project_id === currentProject.value?.id)
+})
+
 const totalMonthlyCost = computed(() => {
-  return monthlyCostList.value.reduce((sum, item) => {
+  return filteredMonthlyCostList.value.reduce((sum, item) => {
     return sum + (item.directCost || 0) + (item.operatingCost || 0) + (item.sharedCost || 0)
   }, 0)
 })
@@ -2434,15 +2456,24 @@ const saveMonthlyCost = () => {
   }
 
   if (isEditingMonthlyCost.value) {
-    monthlyCostList.value[currentMonthlyCostIndex.value] = { ...monthlyCostForm }
+    monthlyCostList.value[currentMonthlyCostIndex.value] = { 
+      ...monthlyCostForm,
+      project_id: currentProject.value?.id || 0
+    }
     ElMessage.success('修改成功')
   } else {
-    const existsIndex = monthlyCostList.value.findIndex(item => item.month === monthlyCostForm.month)
+    const existsIndex = monthlyCostList.value.findIndex(item => 
+      item.month === monthlyCostForm.month && 
+      item.project_id === currentProject.value?.id
+    )
     if (existsIndex >= 0) {
       ElMessage.warning('该月份成本已存在，请选择编辑')
       return
     }
-    monthlyCostList.value.push({ ...monthlyCostForm })
+    monthlyCostList.value.push({ 
+      ...monthlyCostForm,
+      project_id: currentProject.value?.id || 0
+    })
     ElMessage.success('添加成功')
   }
 
@@ -2469,6 +2500,7 @@ const loadActualSettlementFromStorage = () => {
 }
 
 const actualSettlementList = ref<Array<{
+  project_id: number
   period: string[]
   dept: string
   amountWithTax: number
@@ -2488,12 +2520,17 @@ const actualSettlementForm = reactive({
   amountWithoutTax: 0
 })
 
+// 过滤后的实际结算列表
+const filteredActualSettlementList = computed(() => {
+  return actualSettlementList.value.filter(item => item.project_id === currentProject.value?.id)
+})
+
 const totalActualSettlementWithTax = computed(() => {
-  return actualSettlementList.value.reduce((sum, item) => sum + (item.amountWithTax || 0), 0)
+  return filteredActualSettlementList.value.reduce((sum, item) => sum + (item.amountWithTax || 0), 0)
 })
 
 const totalActualSettlementWithoutTax = computed(() => {
-  return actualSettlementList.value.reduce((sum, item) => sum + (item.amountWithoutTax || 0), 0)
+  return filteredActualSettlementList.value.reduce((sum, item) => sum + (item.amountWithoutTax || 0), 0)
 })
 
 const openAddActualSettlement = () => {
@@ -2527,10 +2564,16 @@ const saveActualSettlement = () => {
   }
 
   if (isEditingActualSettlement.value) {
-    actualSettlementList.value[currentActualSettlementIndex.value] = { ...actualSettlementForm }
+    actualSettlementList.value[currentActualSettlementIndex.value] = { 
+      ...actualSettlementForm,
+      project_id: currentProject.value?.id || 0
+    }
     ElMessage.success('修改成功')
   } else {
-    actualSettlementList.value.push({ ...actualSettlementForm })
+    actualSettlementList.value.push({ 
+      ...actualSettlementForm,
+      project_id: currentProject.value?.id || 0
+    })
     ElMessage.success('添加成功')
   }
 
@@ -2556,6 +2599,7 @@ const loadProjectPurchaseFromStorage = () => {
 }
 
 const projectPurchaseList = ref<Array<{
+  project_id: number
   matter: string
   item: string
   quantity: number
@@ -2591,15 +2635,22 @@ const getPurchaseSettlementAmount = (row: any) => {
   return (row.totalPrice || 0) * (row.settlementRatio || 1)
 }
 
+// 过滤后的项目采购列表
+const filteredProjectPurchaseList = computed(() => {
+  return projectPurchaseList.value.filter(item => item.project_id === currentProject.value?.id)
+})
+
 const totalPurchaseSettlementAmount = computed(() => {
-  return projectPurchaseList.value.reduce((sum, item) => {
+  return filteredProjectPurchaseList.value.reduce((sum, item) => {
     return sum + getPurchaseSettlementAmount(item)
   }, 0)
 })
 
 const virtualPersonSettlementAmount = computed(() => {
   let totalAmount = 0
-  const virtualPersons = persons.value.filter((person: any) => person.inputType === '虚拟')
+  const virtualPersons = persons.value.filter((person: any) => 
+    person.inputType === '虚拟' && person.project_id === currentProject.value?.id
+  )
   
   virtualPersons.forEach((person: any) => {
     months.value.forEach(m => {
@@ -2656,10 +2707,16 @@ const saveProjectPurchase = () => {
   }
 
   if (isEditingProjectPurchase.value) {
-    projectPurchaseList.value[currentProjectPurchaseIndex.value] = { ...projectPurchaseForm }
+    projectPurchaseList.value[currentProjectPurchaseIndex.value] = { 
+      ...projectPurchaseForm,
+      project_id: currentProject.value?.id || 0
+    }
     ElMessage.success('修改成功')
   } else {
-    projectPurchaseList.value.push({ ...projectPurchaseForm })
+    projectPurchaseList.value.push({ 
+      ...projectPurchaseForm,
+      project_id: currentProject.value?.id || 0
+    })
     ElMessage.success('添加成功')
   }
 
@@ -2745,8 +2802,20 @@ const months = computed(() => {
   return monthList
 })
 
-// 项目数据
-const projectList = ref([
+// 项目数据 - 从localStorage加载
+const loadProjectsFromStorage = () => {
+  const saved = localStorage.getItem('project_list')
+  if (saved) {
+    try {
+      return JSON.parse(saved)
+    } catch (e) {
+      return null
+    }
+  }
+  return null
+}
+
+const defaultProjects = [
   {
     id: 1,
     label: '成研运营项目管理系统',
@@ -2769,18 +2838,36 @@ const projectList = ref([
     approvalAmount: '3,000,000.00',
     grossMargin: '25.00'
   }
-])
+]
+
+const projectList = ref(loadProjectsFromStorage() || defaultProjects)
+
+// 监听项目列表变化，自动保存到localStorage
+watch(projectList, (newVal) => {
+  localStorage.setItem('project_list', JSON.stringify(newVal))
+}, { deep: true })
 
 // 过滤后的项目列表
 const filteredProjects = computed(() => {
-  if (!searchQuery.value) {
-    return projectList.value
+  let projects = projectList.value
+  
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    projects = projects.filter(project => 
+      project.label.toLowerCase().includes(query) || 
+      project.customer.toLowerCase().includes(query)
+    )
   }
-  const query = searchQuery.value.toLowerCase()
-  return projectList.value.filter(project => 
-    project.label.toLowerCase().includes(query) || 
-    project.customer.toLowerCase().includes(query)
-  )
+  
+  return projects.sort((a, b) => {
+    const statusOrder: Record<string, number> = {
+      '进行中': 0,
+      '已结束': 1
+    }
+    const orderA = statusOrder[a.status] ?? 0
+    const orderB = statusOrder[b.status] ?? 0
+    return orderA - orderB
+  })
 })
 
 const currentProject = ref(projectList.value[0])
@@ -2803,6 +2890,7 @@ const errors = reactive({
 // 合同数据
 const contracts = ref([
   {
+    project_id: 1,
     type: 'main',
     name: '成研运营项目管理系统合同',
     code: 'CY2026001',
@@ -2815,17 +2903,24 @@ const contracts = ref([
 
 // 过滤后的合同列表
 const filteredContracts = computed(() => {
-  return contracts.value.filter(contract => contract.type === currentContractType.value)
+  return contracts.value.filter(contract => 
+    contract.type === currentContractType.value && 
+    contract.project_id === currentProject.value?.id
+  )
 })
 
 // 主合同是否存在
 const mainContractExists = computed(() => {
-  return contracts.value.some(contract => contract.type === 'main')
+  return contracts.value.some(contract => 
+    contract.type === 'main' && 
+    contract.project_id === currentProject.value?.id
+  )
 })
 
 // 订单数据
 const orders = ref([
   {
+    project_id: 1,
     code: 'ORD2026001',
     period: '2026-01-01 / 01-31',
     orderDate: '2026-01-01',
@@ -2833,8 +2928,16 @@ const orders = ref([
   }
 ])
 
+// 过滤后的订单列表
+const filteredOrders = computed(() => {
+  return orders.value.filter(order => 
+    order.project_id === currentProject.value?.id
+  )
+})
+
 // 订单表单
 const orderForm = reactive({
+  project_id: 0,
   code: '',
   startDate: '',
   endDate: '',
@@ -2857,6 +2960,7 @@ const loadPersonsFromStorage = () => {
 
 const defaultPersons = [
   {
+    project_id: 1,
     name: '张三',
     team: '开发组',
     position: '前端工程师',
@@ -2895,7 +2999,9 @@ const personForm = reactive({
 
 // 过滤后的人员列表
 const filteredPersons = computed(() => {
-  let result = [...persons.value]
+  let result = persons.value.filter(person => 
+    person.project_id === currentProject.value?.id
+  )
   
   // 按部门筛选
   if (selectedDept.value) {
@@ -2941,16 +3047,19 @@ const loadSettlementLevelsFromStorage = () => {
 
 const defaultSettlementLevels = [
   {
+    project_id: 1,
     name: '高级',
     priceWithTax: 1000,
     priceWithoutTax: 943.4
   },
   {
+    project_id: 1,
     name: '中级',
     priceWithTax: 800,
     priceWithoutTax: 754.72
   },
   {
+    project_id: 1,
     name: '初级',
     priceWithTax: 600,
     priceWithoutTax: 566.04
@@ -2959,37 +3068,78 @@ const defaultSettlementLevels = [
 
 const settlementLevels = ref(loadSettlementLevelsFromStorage() || defaultSettlementLevels)
 
+// 过滤后的结算等级配置
+const filteredSettlementLevels = computed(() => {
+  return settlementLevels.value.filter(level => level.project_id === currentProject.value?.id)
+})
+
 watch(settlementLevels, (newVal) => {
   localStorage.setItem('settlement_levels', JSON.stringify(newVal))
 }, { deep: true })
 
-// 立项配置
-const approvalConfig = reactive({
-  amount: '',
-  grossMargin: '',
-  settlementPeriods: [
-    {
-      startDate: '',
-      endDate: '',
-      assessmentDate: '',
-      paymentDate: ''
+// 立项配置 - 从localStorage加载
+const loadApprovalConfigsFromStorage = () => {
+  const saved = localStorage.getItem('project_approval_configs')
+  if (saved) {
+    try {
+      return JSON.parse(saved)
+    } catch (e) {
+      return null
     }
-  ]
+  }
+  return null
+}
+
+const approvalConfigs = ref(loadApprovalConfigsFromStorage() || [
+  {
+    project_id: 1,
+    amount: '5,000,000.00',
+    grossMargin: '30.00',
+    settlementPeriods: []
+  }
+])
+
+watch(approvalConfigs, (newVal) => {
+  localStorage.setItem('project_approval_configs', JSON.stringify(newVal))
+}, { deep: true })
+
+// 当前项目的立项配置
+const approvalConfig = computed(() => {
+  const config = approvalConfigs.value.find(c => c.project_id === currentProject.value?.id)
+  if (config) {
+    return config
+  }
+  // 如果没有配置，返回默认配置
+  return {
+    project_id: currentProject.value?.id || 0,
+    amount: '',
+    grossMargin: '',
+    settlementPeriods: []
+  }
 })
 
 // 项目重要事项
 const importantItems = ref([
   {
+    project_id: 1,
     title: '项目启动会议',
     date: '2026-01-05',
     color: 'red'
   },
   {
+    project_id: 1,
     title: '需求评审完成',
     date: '2026-01-20',
     color: 'red'
   }
 ])
+
+// 过滤后的重要事项
+const filteredImportantItems = computed(() => {
+  return importantItems.value.filter(item => 
+    item.project_id === currentProject.value?.id
+  )
+})
 
 // 重要事项表单
 const importantItemForm = reactive({
@@ -3028,7 +3178,7 @@ const editErrors = reactive({
   customer: ''
 })
 
-onMounted(() => {
+onMounted(async () => {
   // 从localStorage获取用户信息
   const userStr = localStorage.getItem('user')
   let loginAccount = ''
@@ -3064,7 +3214,48 @@ onMounted(() => {
   } else {
     userDisplayName.value = username.value
   }
+  
+  // 从后端加载项目列表
+  await loadProjects()
 })
+
+// 从后端加载项目列表
+const loadProjects = async () => {
+  try {
+    const projects = await projectApi.getAll()
+    if (projects && projects.length > 0) {
+      projectList.value = projects.map((p: any) => ({
+        id: p.id,
+        label: p.name,
+        status: p.status,
+        type: p.type,
+        amount: p.amount ? p.amount.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) : '0.00',
+        contractPeriod: p.contract_period || '',
+        customer: p.customer || '',
+        approvalAmount: p.approval_amount ? p.approval_amount.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) : '0.00',
+        grossMargin: p.gross_margin || '0.00'
+      }))
+      // 设置当前项目为第一个项目
+      if (projectList.value.length > 0) {
+        currentProject.value = projectList.value[0]
+      }
+    }
+  } catch (error) {
+    console.error('加载项目列表失败:', error)
+    // 如果加载失败，使用localStorage中的数据
+    const saved = localStorage.getItem('project_list')
+    if (saved) {
+      try {
+        projectList.value = JSON.parse(saved)
+        if (projectList.value.length > 0) {
+          currentProject.value = projectList.value[0]
+        }
+      } catch (e) {
+        console.error('解析localStorage数据失败:', e)
+      }
+    }
+  }
+}
 
 const handleEnterManagement = () => {
   // 进入管理页面
@@ -3169,7 +3360,7 @@ const updateProject = () => {
   }
 }
 
-const createProject = () => {
+const createProject = async () => {
   // 表单验证
   let isValid = true
   
@@ -3199,37 +3390,141 @@ const createProject = () => {
   // 格式化合同周期（保留完整日期）
   const contractPeriodStr = `${newProject.contractPeriod[0]} ~ ${newProject.contractPeriod[1]}`
   
-  // 模拟创建项目
-  const newProjectData = {
-    id: projectList.value.length + 1,
-    label: newProject.name,
-    status: '进行中',
-    type: newProject.type,
-    amount: newProject.amount,
-    contractPeriod: contractPeriodStr,
-    customer: newProject.customer,
-    approvalAmount: newProject.amount,
-    grossMargin: '0.00'
+  // 调用后端API创建项目
+  try {
+    const createdProject = await projectApi.create({
+      name: newProject.name,
+      status: '进行中',
+      type: newProject.type,
+      amount: parseFloat(newProject.amount) || 0,
+      contract_period: contractPeriodStr,
+      customer: newProject.customer,
+      approval_amount: parseFloat(newProject.amount) || 0,
+      gross_margin: 0
+    })
+    
+    // 添加到项目列表
+    const newProjectData = {
+      id: createdProject.id,
+      label: createdProject.name,
+      status: createdProject.status,
+      type: createdProject.type,
+      amount: createdProject.amount ? createdProject.amount.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) : '0.00',
+      contractPeriod: createdProject.contract_period || '',
+      customer: createdProject.customer || '',
+      approvalAmount: createdProject.approval_amount ? createdProject.approval_amount.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) : '0.00',
+      grossMargin: createdProject.gross_margin || '0.00'
+    }
+    
+    projectList.value.push(newProjectData)
+    showCreateProjectDialog.value = false
+    
+    // 强制触发项目列表更新
+    projectList.value = [...projectList.value]
+    
+    // 自动选择新创建的项目
+    currentProject.value = newProjectData
+    
+    // 重置表单
+    Object.assign(newProject, {
+      name: '',
+      contractPeriod: [],
+      customer: '',
+      type: '运营类',
+      amount: ''
+    })
+    
+    ElMessage.success('项目创建成功')
+  } catch (error) {
+    console.error('创建项目失败:', error)
+    ElMessage.error('创建项目失败，请重试')
   }
-  
-  projectList.value.push(newProjectData)
-  showCreateProjectDialog.value = false
-  
-  // 重置表单
-  Object.assign(newProject, {
-    name: '',
-    contractPeriod: [],
-    customer: '',
-    type: '运营类',
-    amount: ''
-  })
-  
-  ElMessage.success('项目创建成功')
 }
 
-// 结算配置方法
+const handleEndProject = () => {
+  if (!currentProject.value) {
+    ElMessage.warning('请先选择项目')
+    return
+  }
+  
+  ElMessageBox.confirm(
+    `确定要结束项目 "${currentProject.value.label}" 吗？结束后项目将变为只读状态。`,
+    '确认结束项目',
+    {
+      confirmButtonText: '确定结束',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(async () => {
+    try {
+      // 调用后端API更新项目状态
+      await projectApi.update(currentProject.value.id, {
+        status: '已结束'
+      })
+      
+      const projectIndex = projectList.value.findIndex(p => p.id === currentProject.value?.id)
+      if (projectIndex !== -1) {
+        projectList.value[projectIndex].status = '已结束'
+        currentProject.value = { ...currentProject.value, status: '已结束' }
+        ElMessage.success('项目已结束')
+      }
+    } catch (error) {
+      console.error('结束项目失败:', error)
+      ElMessage.error('结束项目失败，请重试')
+    }
+  }).catch(() => {})
+}
+
+const handleDeleteProject = () => {
+  if (!currentProject.value) {
+    ElMessage.warning('请先选择项目')
+    return
+  }
+  
+  if (!currentProject.value.id) {
+    ElMessage.warning('项目ID无效')
+    console.error('项目ID无效:', currentProject.value)
+    return
+  }
+  
+  ElMessageBox.confirm(
+    `确定要删除项目 "${currentProject.value.label}" 吗？删除后将清除该项目的所有数据，此操作不可恢复！`,
+    '确认删除项目',
+    {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'error',
+      confirmButtonClass: 'el-button--danger'
+    }
+  ).then(async () => {
+    try {
+      console.log('正在删除项目，ID:', currentProject.value.id, '类型:', typeof currentProject.value.id)
+      
+      // 调用后端API删除项目
+      await projectApi.delete(currentProject.value.id)
+      
+      const projectIndex = projectList.value.findIndex(p => p.id === currentProject.value?.id)
+      if (projectIndex !== -1) {
+        projectList.value.splice(projectIndex, 1)
+        
+        if (projectList.value.length > 0) {
+          currentProject.value = filteredProjects.value[0]
+        } else {
+          currentProject.value = null
+        }
+        
+        ElMessage.success('项目已删除')
+      }
+    } catch (error: any) {
+      console.error('删除项目失败:', error)
+      ElMessage.error(`删除项目失败: ${error.message || '请重试'}`)
+    }
+  }).catch(() => {})
+}
+
 const addSettlementLevel = () => {
   settlementLevels.value.push({
+    project_id: currentProject.value?.id || 0,
     name: '',
     priceWithTax: 0,
     priceWithoutTax: 0
@@ -3237,14 +3532,24 @@ const addSettlementLevel = () => {
 }
 
 const removeSettlementLevel = (index: number) => {
-  settlementLevels.value.splice(index, 1)
+  // 找到过滤后的索引对应的实际索引
+  const levelToDelete = filteredSettlementLevels.value[index]
+  const actualIndex = settlementLevels.value.findIndex(l => 
+    l.name === levelToDelete.name && l.project_id === levelToDelete.project_id
+  )
+  if (actualIndex !== -1) {
+    settlementLevels.value.splice(actualIndex, 1)
+  }
 }
 
 const saveSettlementConfig = () => {
-  // 更新所有已存在人员的单价
+  // 只更新当前项目的人员单价
   persons.value.forEach((person: any) => {
+    if (person.project_id !== currentProject.value?.id) {
+      return
+    }
     if (person.settlementLevel) {
-      const levelConfig = settlementLevels.value.find(level => level.name === person.settlementLevel)
+      const levelConfig = filteredSettlementLevels.value.find(level => level.name === person.settlementLevel)
       if (levelConfig) {
         person.priceWithTax = levelConfig.priceWithTax
         person.priceWithoutTax = levelConfig.priceWithoutTax
@@ -3252,14 +3557,16 @@ const saveSettlementConfig = () => {
     }
   })
   
-  console.log('保存结算配置:', settlementLevels.value)
+  console.log('保存结算配置:', filteredSettlementLevels.value)
   ElMessage.success('结算配置保存成功，人员单价已更新')
   showSettlementConfigDialog.value = false
 }
 
-// 立项配置方法
 const addSettlementPeriod = () => {
-  approvalConfig.settlementPeriods.push({
+  if (!approvalConfig.value.settlementPeriods) {
+    approvalConfig.value.settlementPeriods = []
+  }
+  approvalConfig.value.settlementPeriods.push({
     startDate: '',
     endDate: '',
     assessmentDate: '',
@@ -3268,12 +3575,30 @@ const addSettlementPeriod = () => {
 }
 
 const removeSettlementPeriod = (index: number) => {
-  approvalConfig.settlementPeriods.splice(index, 1)
+  if (approvalConfig.value.settlementPeriods) {
+    approvalConfig.value.settlementPeriods.splice(index, 1)
+  }
 }
 
 const saveApprovalConfig = () => {
-  // 这里可以添加保存逻辑，例如发送API请求或保存到localStorage
-  console.log('保存立项配置:', approvalConfig)
+  // 查找是否已存在该项目的配置
+  const existingIndex = approvalConfigs.value.findIndex(c => c.project_id === currentProject.value?.id)
+  
+  if (existingIndex !== -1) {
+    // 更新现有配置
+    approvalConfigs.value[existingIndex] = {
+      ...approvalConfig.value,
+      project_id: currentProject.value?.id || 0
+    }
+  } else {
+    // 添加新配置
+    approvalConfigs.value.push({
+      ...approvalConfig.value,
+      project_id: currentProject.value?.id || 0
+    })
+  }
+  
+  console.log('保存立项配置:', approvalConfig.value)
   
   // 更新当前项目的立项金额和毛利率
   if (currentProject.value) {
@@ -3281,8 +3606,8 @@ const saveApprovalConfig = () => {
     if (projectIndex !== -1) {
       projectList.value[projectIndex] = {
         ...projectList.value[projectIndex],
-        approvalAmount: approvalConfig.amount,
-        grossMargin: approvalConfig.grossMargin
+        approvalAmount: approvalConfig.value.amount,
+        grossMargin: approvalConfig.value.grossMargin
       }
       currentProject.value = projectList.value[projectIndex]
     }
@@ -3313,14 +3638,15 @@ const saveImportantItem = () => {
   if (isEditingImportantItem.value && currentImportantItemIndex.value !== -1) {
     // 编辑现有事项
     importantItems.value[currentImportantItemIndex.value] = {
+      ...importantItems.value[currentImportantItemIndex.value],
       title: importantItemForm.title,
-      date: importantItems.value[currentImportantItemIndex.value].date, // 保持原有日期
       color: importantItemForm.color
     }
     ElMessage.success('重要事项编辑成功')
   } else {
     // 添加新事项
     importantItems.value.push({
+      project_id: currentProject.value?.id,
       title: importantItemForm.title,
       date: today, // 自动记录当前日期
       color: importantItemForm.color
@@ -3358,6 +3684,7 @@ const saveContract = () => {
   
   // 添加合同
   contracts.value.push({
+    project_id: currentProject.value?.id,
     type: currentContractType.value,
     name: contractForm.name,
     code: contractForm.code,
@@ -3449,6 +3776,7 @@ const saveOrder = () => {
   if (isEditingOrder.value && currentOrderIndex.value !== -1) {
     // 编辑现有订单
     orders.value[currentOrderIndex.value] = {
+      project_id: currentProject.value?.id,
       code: orderForm.code,
       period: period,
       orderDate: orderForm.orderDate,
@@ -3458,6 +3786,7 @@ const saveOrder = () => {
   } else {
     // 添加新订单
     orders.value.push({
+      project_id: currentProject.value?.id,
       code: orderForm.code,
       period: period,
       orderDate: orderForm.orderDate,
@@ -3513,8 +3842,12 @@ const editOrder = (order: any) => {
 }
 
 const deleteOrder = (index: number) => {
-  orders.value.splice(index, 1)
-  ElMessage.success('订单删除成功')
+  const orderToDelete = filteredOrders.value[index]
+  const orderIndex = orders.value.findIndex(o => o.code === orderToDelete.code && o.project_id === orderToDelete.project_id)
+  if (orderIndex !== -1) {
+    orders.value.splice(orderIndex, 1)
+    ElMessage.success('订单删除成功')
+  }
 }
 
 // 人员管理方法
@@ -3541,13 +3874,15 @@ const savePerson = () => {
   if (isEditingPerson.value && currentPersonIndex.value !== -1) {
     // 编辑现有人员
     persons.value[currentPersonIndex.value] = {
-      ...personForm
+      ...personForm,
+      project_id: currentProject.value?.id
     }
     ElMessage.success('人员编辑成功')
   } else {
     // 添加新人员
     persons.value.push({
-      ...personForm
+      ...personForm,
+      project_id: currentProject.value?.id
     })
     ElMessage.success('人员添加成功')
   }
@@ -3837,8 +4172,12 @@ const calculateWorkDays = (person: any) => {
 const departmentSettlementDataWithTax = computed(() => {
   const data: any = {}
   
-  // 人员结算计算
+  // 人员结算计算 - 只计算当前项目的人员
   persons.value?.forEach((person: any) => {
+    if (person.project_id !== currentProject.value?.id) {
+      return
+    }
+    
     const dept = person.settlementDept || '未分配'
     const level = person.settlementLevel || '初级'
     
@@ -3883,8 +4222,12 @@ const departmentSettlementDataWithTax = computed(() => {
 const departmentSettlementDataWithoutTax = computed(() => {
   const data: any = {}
   
-  // 人员结算计算
+  // 人员结算计算 - 只计算当前项目的人员
   persons.value?.forEach((person: any) => {
+    if (person.project_id !== currentProject.value?.id) {
+      return
+    }
+    
     const dept = person.settlementDept || '未分配'
     const level = person.settlementLevel || '初级'
     
@@ -3932,7 +4275,7 @@ const departmentSettlementData = computed(() => {
 
 // 项目总计人员数量
 const totalPersonCount = computed(() => {
-  return persons.value?.length || 0
+  return persons.value?.filter((person: any) => person.project_id === currentProject.value?.id).length || 0
 })
 
 // 项目每月总计金额
@@ -4033,6 +4376,61 @@ const formatNumber = (num: number) => {
   return num.toFixed(2)
 }
 
+// 财务数据分析计算
+// 当前毛利暂估 = 项目整体累计结算金额 / 1.06 - 累计成本
+const currentGrossProfit = computed(() => {
+  // 累计结算金额（从项目结算暂估获取）
+  const totalSettlement = totalProjectAmount.value
+  // 累计成本（从月成本列表获取）
+  const totalCost = totalMonthlyCost.value
+  // 毛利暂估 = 结算金额 / 1.06 - 成本
+  return totalSettlement / 1.06 - totalCost
+})
+
+// 当前毛利率暂估
+const currentGrossMarginRate = computed(() => {
+  const totalSettlement = totalProjectAmount.value
+  if (totalSettlement === 0) return 0
+  return (currentGrossProfit.value / totalSettlement) * 100
+})
+
+// 实际毛利 = 实际结算金额 / 1.06 - 累计成本
+const actualGrossProfit = computed(() => {
+  // 实际结算金额（从实际结算列表获取）
+  const totalActualSettlement = totalActualSettlementWithoutTax.value
+  // 累计成本
+  const totalCost = totalMonthlyCost.value
+  return totalActualSettlement - totalCost
+})
+
+// 实际毛利率
+const actualGrossMarginRate = computed(() => {
+  const totalActualSettlement = totalActualSettlementWithoutTax.value
+  if (totalActualSettlement === 0) return 0
+  return (actualGrossProfit.value / totalActualSettlement) * 100
+})
+
+// 滚动毛利率暂估（基于人员工时变化与月本数据预估）
+const rollingGrossMarginRate = computed(() => {
+  // 使用当前毛利率暂估作为基础
+  return currentGrossMarginRate.value
+})
+
+// 应结算额（从项目结算暂估获取）
+const payableSettlement = computed(() => {
+  return totalProjectAmount.value
+})
+
+// 订单结算（从项目采购获取）
+const orderSettlement = computed(() => {
+  return totalPurchaseSettlementAmount.value
+})
+
+// 毛利产出
+const grossProfitOutput = computed(() => {
+  return currentGrossProfit.value
+})
+
 // 自由计算函数
 const calculateFreeSettlement = () => {
   if (!freeCalcStartMonth.value || !freeCalcEndMonth.value) {
@@ -4066,6 +4464,9 @@ const calculateFreeSettlement = () => {
   }
 
   const filteredPersons = persons.value.filter((person: any) => {
+    if (person.project_id !== currentProject.value?.id) {
+      return false
+    }
     if (freeCalcDept.value && person.settlementDept !== freeCalcDept.value) {
       return false
     }

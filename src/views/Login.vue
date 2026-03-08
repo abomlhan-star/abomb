@@ -81,6 +81,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { authApi } from '../api'
 
 const router = useRouter()
 const loading = ref(false)
@@ -117,42 +118,25 @@ const handleLogin = async () => {
   
   loading.value = true
   try {
-    setTimeout(() => {
-      const systemUsers = localStorage.getItem('system_users')
-      let userEmail = 'admin@chengyan.com'
-      let userRole = 'admin'
-      let loginSuccess = false
-      
-      if (systemUsers) {
-        const users = JSON.parse(systemUsers)
-        const user = users.find((u: any) => u.account === loginForm.username && u.password === loginForm.password)
-        if (user) {
-          userEmail = user.email
-          userRole = user.role || 'project_manager'
-          loginSuccess = true
-        }
-      } else if (loginForm.username === 'admin' && loginForm.password === 'richinfo@123') {
-        loginSuccess = true
-      }
-      
-      if (!loginSuccess) {
-        ElMessage.error('用户名或密码错误')
-        loading.value = false
-        return
-      }
-      
-      localStorage.setItem('token', 'mock-token-123456')
-      localStorage.setItem('user', JSON.stringify({ 
-        username: loginForm.username,
-        email: userEmail,
-        role: userRole
-      }))
-      
-      ElMessage.success('登录成功')
-      router.push('/')
-    }, 1000)
-  } catch (error) {
-    ElMessage.error('登录失败，请检查用户名和密码')
+    // 调用后端API登录
+    const response = await authApi.login({
+      username: loginForm.username,
+      password: loginForm.password
+    })
+    
+    // 保存token和用户信息
+    localStorage.setItem('token', response.token)
+    localStorage.setItem('user', JSON.stringify({ 
+      username: loginForm.username,
+      email: response.user?.email || 'admin@chengyan.com',
+      role: response.user?.role || 'admin'
+    }))
+    
+    ElMessage.success('登录成功')
+    router.push('/')
+  } catch (error: any) {
+    console.error('登录失败:', error)
+    ElMessage.error(error.message || '登录失败，请检查用户名和密码')
   } finally {
     loading.value = false
   }
