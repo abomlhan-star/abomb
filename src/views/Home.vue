@@ -285,7 +285,7 @@
               <tr>
                 <th class="px-6 py-3">合同名称</th>
                 <th class="px-6 py-3">合同编号</th>
-                <th class="px-6 py-3 text-right">合同金额</th>
+                <th class="px-6 py-3 text-left">合同金额</th>
                 <th class="px-6 py-3">周期</th>
                 <th class="px-6 py-3">客户名称</th>
                 <th class="px-6 py-3">附件</th>
@@ -296,7 +296,7 @@
               <tr v-for="(contract, index) in filteredContracts" :key="index">
                 <td class="px-6 py-4 font-medium">{{ contract.name }}</td>
                 <td class="px-6 py-4 text-slate-500 uppercase text-xs">{{ contract.code }}</td>
-                <td class="px-6 py-4 text-red-500 font-semibold text-right">{{ contract.amount }}</td>
+                <td class="px-6 py-4 text-red-500 font-semibold text-left">{{ contract.amount }}</td>
                 <td class="px-6 py-4 text-xs">{{ contract.period }}</td>
                 <td class="px-6 py-4">{{ contract.customer }}</td>
                 <td class="px-6 py-4">
@@ -346,6 +346,7 @@
                 <th class="px-6 py-3">订单编号</th>
                 <th class="px-6 py-3">订单周期</th>
                 <th class="px-6 py-3">订单时间</th>
+                <th class="px-6 py-3">订单金额</th>
                 <th class="px-6 py-3">附件</th>
                 <th class="px-6 py-3 text-center">操作</th>
               </tr>
@@ -355,6 +356,9 @@
                 <td class="px-6 py-4 text-slate-500 uppercase text-xs">{{ order.code }}</td>
                 <td class="px-6 py-4 text-xs">{{ order.period }}</td>
                 <td class="px-6 py-4 text-xs">{{ order.orderDate }}</td>
+                <td class="px-6 py-4 text-xs font-medium text-slate-700 dark:text-slate-300">
+                  {{ order.amount ? `¥${order.amount}` : '-' }}
+                </td>
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-2">
                     <button 
@@ -2017,6 +2021,16 @@
             />
           </div>
           <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">订单金额</label>
+            <input 
+              v-model="orderForm.amount"
+              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              placeholder="请输入订单金额"
+              type="number"
+              step="0.01"
+            />
+          </div>
+          <div>
             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">订单附件 (PDF格式)</label>
             <div class="flex items-center gap-2">
               <input 
@@ -2936,6 +2950,7 @@ const orderForm = reactive({
   startDate: '',
   endDate: '',
   orderDate: '',
+  amount: '',
   attachment: null
 })
 
@@ -3759,7 +3774,7 @@ const handleOrderFileUpload = (event: any) => {
 
 const saveOrder = () => {
   // 验证表单
-  if (!orderForm.code || !orderForm.startDate || !orderForm.endDate || !orderForm.orderDate) {
+  if (!orderForm.code || !orderForm.startDate || !orderForm.endDate || !orderForm.orderDate || !orderForm.amount) {
     ElMessage.error('请填写所有必填字段')
     return
   }
@@ -3774,6 +3789,7 @@ const saveOrder = () => {
       code: orderForm.code,
       period: period,
       orderDate: orderForm.orderDate,
+      amount: orderForm.amount,
       attachment: orderForm.attachment
     }
     ElMessage.success('订单编辑成功')
@@ -3784,6 +3800,7 @@ const saveOrder = () => {
       code: orderForm.code,
       period: period,
       orderDate: orderForm.orderDate,
+      amount: orderForm.amount,
       attachment: orderForm.attachment
     })
     ElMessage.success('订单添加成功')
@@ -3795,6 +3812,7 @@ const saveOrder = () => {
     startDate: '',
     endDate: '',
     orderDate: '',
+    amount: '',
     attachment: null
   })
   
@@ -3827,6 +3845,7 @@ const editOrder = (order: any) => {
   }
   
   orderForm.orderDate = order.orderDate
+  orderForm.amount = order.amount || ''
   orderForm.attachment = order.attachment
   
   // 显示编辑对话框
