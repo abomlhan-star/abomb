@@ -92,6 +92,26 @@
 
     <!-- 右侧主内容区域 -->
     <main class="main-content">
+      <!-- 无项目时的缺省页面 -->
+      <div v-if="projectList.length === 0 || !currentProject" class="flex flex-col items-center justify-center h-full min-h-[600px]">
+        <div class="text-center">
+          <div class="mb-8">
+            <el-icon class="text-8xl text-slate-300 dark:text-slate-600"><FolderOpened /></el-icon>
+          </div>
+          <h2 class="text-2xl font-bold text-slate-600 dark:text-slate-400 mb-4">暂无项目</h2>
+          <p class="text-slate-500 dark:text-slate-500 mb-8">请先创建一个项目开始使用系统</p>
+          <button 
+            class="px-6 py-3 bg-primary hover:bg-blue-600 text-white rounded-lg font-medium transition-all flex items-center gap-2 mx-auto shadow-lg"
+            @click="showCreateProjectDialog = true"
+          >
+            <el-icon><Plus /></el-icon>
+            新建项目
+          </button>
+        </div>
+      </div>
+
+      <!-- 有项目时显示项目详情 -->
+      <template v-else>
       <header class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="flex items-center gap-3">
           <h2 class="text-2xl font-bold tracking-tight">{{ currentProject?.label || '请选择项目' }}</h2>
@@ -151,11 +171,11 @@
         </div>
         <div class="bg-card-light dark:bg-card-dark p-5 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800">
           <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">立项金额</p>
-          <h3 class="text-lg font-bold text-red-500">¥{{ currentProject?.approvalAmount || '5,000,000.00' }}</h3>
+          <h3 class="text-lg font-bold text-red-500">¥{{ approvalConfig.amount || '0.00' }}</h3>
         </div>
         <div class="bg-card-light dark:bg-card-dark p-5 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800">
           <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">立项毛利率</p>
-          <h3 class="text-lg font-bold">{{ currentProject?.grossMargin || '30.00' }}%</h3>
+          <h3 class="text-lg font-bold">{{ approvalConfig.grossMargin || '0.00' }}%</h3>
         </div>
       </div>
 
@@ -1075,6 +1095,7 @@
         </div>
       </section>
 
+      </template>
     </main>
 
     <!-- 月成本对话框 -->
@@ -2140,12 +2161,16 @@
                 v-model="personForm.settlementLevel"
                 class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                 @change="handleSettlementLevelChange"
+                :disabled="filteredSettlementLevels.length === 0"
               >
-                <option value="">请选择结算等级</option>
-                <option v-for="level in settlementLevels" :key="level.name" :value="level.name">
+                <option value="">{{ filteredSettlementLevels.length === 0 ? '请先配置结算等级' : '请选择结算等级' }}</option>
+                <option v-for="level in filteredSettlementLevels" :key="level.name" :value="level.name">
                   {{ level.name }}
                 </option>
               </select>
+              <p v-if="filteredSettlementLevels.length === 0" class="text-xs text-orange-500 mt-1">
+                请先在"结算配置"中添加结算等级
+              </p>
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2309,9 +2334,9 @@ const handleExcelFileChange = (event: Event) => {
       
       let settlementLevel = excelLevel
       if (!settlementLevel || settlementLevel === '') {
-        settlementLevel = settlementLevels.value.length > 0 ? settlementLevels.value[0].name : '初级'
+        settlementLevel = filteredSettlementLevels.value.length > 0 ? filteredSettlementLevels.value[0].name : ''
       } else {
-        const matchedLevel = settlementLevels.value.find(level => 
+        const matchedLevel = filteredSettlementLevels.value.find(level => 
           level.name === settlementLevel || 
           level.name.toLowerCase() === settlementLevel.toLowerCase() ||
           level.name.includes(settlementLevel) ||
@@ -2320,7 +2345,7 @@ const handleExcelFileChange = (event: Event) => {
         if (matchedLevel) {
           settlementLevel = matchedLevel.name
         } else {
-          settlementLevel = settlementLevels.value.length > 0 ? settlementLevels.value[0].name : '初级'
+          settlementLevel = filteredSettlementLevels.value.length > 0 ? filteredSettlementLevels.value[0].name : ''
         }
       }
       
@@ -2340,7 +2365,7 @@ const handleExcelFileChange = (event: Event) => {
       }
       
       if (!person.priceWithTax || person.priceWithTax === 0) {
-        const levelConfig = settlementLevels.value.find(level => level.name === settlementLevel)
+        const levelConfig = filteredSettlementLevels.value.find(level => level.name === settlementLevel)
         if (levelConfig) {
           person.priceWithTax = levelConfig.priceWithTax
           person.priceWithoutTax = levelConfig.priceWithoutTax
@@ -3057,26 +3082,7 @@ const loadSettlementLevelsFromStorage = () => {
   return null
 }
 
-const defaultSettlementLevels = [
-  {
-    project_id: 1,
-    name: '高级',
-    priceWithTax: 1000,
-    priceWithoutTax: 943.4
-  },
-  {
-    project_id: 1,
-    name: '中级',
-    priceWithTax: 800,
-    priceWithoutTax: 754.72
-  },
-  {
-    project_id: 1,
-    name: '初级',
-    priceWithTax: 600,
-    priceWithoutTax: 566.04
-  }
-]
+const defaultSettlementLevels: any[] = []
 
 const settlementLevels = ref(loadSettlementLevelsFromStorage() || defaultSettlementLevels)
 
@@ -3875,7 +3881,7 @@ const deleteOrder = (index: number) => {
 // 人员管理方法
 const handleSettlementLevelChange = () => {
   if (personForm.settlementLevel) {
-    const selectedLevel = settlementLevels.value.find(level => level.name === personForm.settlementLevel)
+    const selectedLevel = filteredSettlementLevels.value.find(level => level.name === personForm.settlementLevel)
     if (selectedLevel) {
       personForm.priceWithTax = selectedLevel.priceWithTax
       personForm.priceWithoutTax = selectedLevel.priceWithoutTax
@@ -4584,20 +4590,44 @@ const payableSettlement = computed(() => {
   const contractEnd = new Date(contractEndStrFull)
   const totalWorkDays = calculateWorkDaysInRange(contractStart, contractEnd)
   if (totalWorkDays === 0) return 0
+  
   const now = new Date()
   const currentYear = now.getFullYear()
   const currentMonth = now.getMonth() + 1
   const currentQuarter = Math.ceil(currentMonth / 3)
-  const quartersCompleted = currentQuarter - 1
-  if (quartersCompleted === 0) return 0
+  
+  // 计算从项目开始到当前时间应该结算的工作日
   let settlementWorkDays = 0
-  for (let q = 1; q <= quartersCompleted; q++) {
-    const startMonth = (q - 1) * 3 + 1
-    const endMonth = q * 3
-    const periodStart = new Date(currentYear, startMonth - 1, 1)
-    const periodEnd = new Date(currentYear, endMonth, 0)
-    settlementWorkDays += calculateWorkDaysInRange(periodStart, periodEnd)
+  const projectStartYear = contractStart.getFullYear()
+  const projectStartMonth = contractStart.getMonth() + 1
+  const projectStartQuarter = Math.ceil(projectStartMonth / 3)
+  
+  // 遍历从项目开始到当前的所有季度
+  let year = projectStartYear
+  let quarter = projectStartQuarter
+  
+  while (year < currentYear || (year === currentYear && quarter < currentQuarter)) {
+    const startMonth = (quarter - 1) * 3 + 1
+    const endMonth = quarter * 3
+    const periodStart = new Date(year, startMonth - 1, 1)
+    const periodEnd = new Date(year, endMonth, 0)
+    
+    // 计算该季度的工作日，但不能超过项目结束日期
+    const actualStart = periodStart < contractStart ? contractStart : periodStart
+    const actualEnd = periodEnd > contractEnd ? contractEnd : periodEnd
+    
+    if (actualStart <= actualEnd) {
+      settlementWorkDays += calculateWorkDaysInRange(actualStart, actualEnd)
+    }
+    
+    // 进入下一个季度
+    quarter++
+    if (quarter > 4) {
+      quarter = 1
+      year++
+    }
   }
+  
   return (approvalAmount / totalWorkDays) * settlementWorkDays
 })
 
@@ -4605,18 +4635,39 @@ const payableSettlement = computed(() => {
 const payableSettlementMarginRate = computed(() => {
   const settlementAmount = payableSettlement.value
   if (settlementAmount === 0) return 0
+  
   const now = new Date()
   const currentYear = now.getFullYear()
   const currentMonth = now.getMonth() + 1
   const currentQuarter = Math.ceil(currentMonth / 3)
-  const quartersCompleted = currentQuarter - 1
-  if (quartersCompleted === 0) return 0
+  
+  const contractPeriod = currentProject.value?.contractPeriod || '2026-01-01 ~ 2026-12-31'
+  const [contractStartStr] = contractPeriod.split(' ~ ')
+  const contractStart = new Date(contractStartStr)
+  const projectStartYear = contractStart.getFullYear()
+  const projectStartMonth = contractStart.getMonth() + 1
+  const projectStartQuarter = Math.ceil(projectStartMonth / 3)
+  
   const settlementMonths: string[] = []
-  for (let q = 1; q <= quartersCompleted; q++) {
-    const startMonth = (q - 1) * 3 + 1
-    const endMonth = q * 3
+  
+  // 遍历从项目开始到当前的所有季度
+  let year = projectStartYear
+  let quarter = projectStartQuarter
+  
+  while (year < currentYear || (year === currentYear && quarter < currentQuarter)) {
+    const startMonth = (quarter - 1) * 3 + 1
+    const endMonth = quarter * 3
+    
     for (let m = startMonth; m <= endMonth; m++) {
-      settlementMonths.push(`${currentYear}-${String(m).padStart(2, '0')}`)
+      const monthStr = `${year}-${String(m).padStart(2, '0')}`
+      settlementMonths.push(monthStr)
+    }
+    
+    // 进入下一个季度
+    quarter++
+    if (quarter > 4) {
+      quarter = 1
+      year++
     }
   }
   const periodCost = filteredMonthlyCostList.value
