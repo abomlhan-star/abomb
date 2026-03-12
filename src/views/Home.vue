@@ -514,6 +514,12 @@
             >
               <el-icon class="text-[16px]"><Plus /></el-icon> 添加人员
             </button>
+            <button 
+              class="border border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1"
+              @click="confirmClearPersons"
+            >
+              <el-icon class="text-[16px]"><Delete /></el-icon> 一键清空
+            </button>
           </div>
         </div>
         <div class="overflow-x-auto">
@@ -2349,6 +2355,14 @@ const handleExcelFileChange = (event: Event) => {
         }
       }
       
+      // 转换Excel日期序列号为正常日期
+      const excelDateToDate = (excelDate: any): string => {
+        if (!excelDate || isNaN(excelDate)) return ''
+        // Excel日期序列号转换（1900年1月1日为起点）
+        const date = new Date(Math.round((excelDate - 25569) * 86400 * 1000))
+        return date.toISOString().split('T')[0]
+      }
+      
       const person: any = {
         name: row[headerMap['姓名']] || row[headerMap['人员姓名']] || row[0] || '',
         team: row[headerMap['团队']] || row[headerMap['所属团队']] || '',
@@ -2356,8 +2370,8 @@ const handleExcelFileChange = (event: Event) => {
         settlementDept: row[headerMap['结算部门']] || row[headerMap['部门']] || '',
         settlementLevel: settlementLevel,
         contact: row[headerMap['对接人']] || '',
-        entryDate: row[headerMap['入场日期']] || row[headerMap['入场时间']] || '',
-        exitDate: row[headerMap['离场日期']] || row[headerMap['离场时间']] || '',
+        entryDate: excelDateToDate(row[headerMap['入场日期']] || row[headerMap['入场时间']]),
+        exitDate: excelDateToDate(row[headerMap['离场日期']] || row[headerMap['离场时间']]),
         priceWithTax: parseFloat(row[headerMap['含税单价']]) || 0,
         priceWithoutTax: parseFloat(row[headerMap['不含税单价']]) || 0,
         inputType: row[headerMap['投入类型']] || '实际',
@@ -2404,9 +2418,18 @@ const confirmExcelImport = () => {
     return
   }
   
+  const currentProjectId = currentProject.value?.id
+  if (!currentProjectId) {
+    ElMessage.error('请先选择项目')
+    return
+  }
+  
   let importCount = 0
   excelPreviewData.value.forEach(person => {
-    persons.value.push({ ...person })
+    persons.value.push({ 
+      ...person,
+      project_id: currentProjectId
+    })
     importCount++
   })
   
@@ -2770,15 +2793,21 @@ const calculateTotalPrice = () => {
 
 // 计算所有唯一的部门
 const departments = computed(() => {
-  const depts = new Set(persons.value.map(person => person.settlementDept))
+  const currentProjectId = currentProject.value?.id
+  const depts = new Set(persons.value
+    .filter(person => person.project_id === currentProjectId)
+    .map(person => person.settlementDept)
+  )
   return Array.from(depts).filter(dept => dept)
 })
 
 // 统计部门人员数量
 const departmentStats = computed(() => {
+  const currentProjectId = currentProject.value?.id
   return departments.value.map(dept => {
-    const allCount = persons.value.filter(person => person.settlementDept === dept).length
-    const activeCount = persons.value.filter(person => person.settlementDept === dept && !person.exitDate).length
+    const projectPersons = persons.value.filter(person => person.project_id === currentProjectId)
+    const allCount = projectPersons.filter(person => person.settlementDept === dept).length
+    const activeCount = projectPersons.filter(person => person.settlementDept === dept && !person.exitDate).length
     return { dept, allCount, activeCount }
   })
 })
@@ -3945,8 +3974,57 @@ const editPerson = (person: any) => {
 }
 
 const deletePerson = (index: number) => {
-  persons.value.splice(index, 1)
-  ElMessage.success('人员删除成功')
+  // 从过滤后的人员列表中获取要删除的人员
+  const personToDelete = filteredPersons.value[index]
+  if (personToDelete) {
+    // 在原始人员数组中找到对应的索引
+    const originalIndex = persons.value.findIndex(p => 
+      p.name === personToDelete.name && 
+      p.project_id === personToDelete.project_id
+    )
+    if (originalIndex !== -1) {
+      persons.value.splice(originalIndex, 1)
+      ElMessage.success('人员删除成功')
+    }
+  }
+}
+
+// 确认清空当前项目人员
+const confirmClearPersons = async () => {
+  const currentProjectId = currentProject.value?.id
+  if (!currentProjectId) {
+    ElMessage.error('请先选择项目')
+    return
+  }
+  
+  const projectPersonCount = filteredPersons.value.length
+  if (projectPersonCount === 0) {
+    ElMessage.info('当前项目暂无人员')
+    return
+  }
+  
+  ElMessageBox.confirm(
+    `确定要清空当前项目的所有${projectPersonCount}个人员吗？此操作不可恢复。`,
+    '警告',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(async () => {
+    try {
+      // 调用后端API删除数据库中的人员
+      await dataApi.deleteAllPersons()
+      // 过滤出非当前项目的人员
+      persons.value = persons.value.filter(person => person.project_id !== currentProjectId)
+      ElMessage.success(`成功清空${projectPersonCount}个人员`)
+    } catch (error) {
+      console.error('清空人员失败:', error)
+      ElMessage.error('清空人员失败，请重试')
+    }
+  }).catch(() => {
+    // 取消操作
+  })
 }
 
 // 分页控制函数

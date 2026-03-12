@@ -227,6 +227,18 @@ router.delete('/persons/:id', async (req: AuthRequest, res: Response): Promise<v
   }
 })
 
+router.delete('/persons', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const projectId = getProjectId(req)
+
+    await pool.execute('DELETE FROM persons WHERE project_id = ?', [projectId])
+    res.json({ message: 'All persons deleted for project' })
+  } catch (error) {
+    console.error('Delete all persons error:', error)
+    res.status(500).json({ error: 'Failed to delete all persons' })
+  }
+})
+
 router.get('/orders', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const projectId = getProjectId(req)

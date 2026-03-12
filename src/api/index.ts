@@ -135,6 +135,9 @@ export const dataApi = {
 
   deletePerson: (id: number) =>
     api.delete(`/data/persons/${id}`),
+  
+  deleteAllPersons: () =>
+    api.delete('/data/persons'),
 
   getOrders: () =>
     api.get<any[]>('/data/orders'),
