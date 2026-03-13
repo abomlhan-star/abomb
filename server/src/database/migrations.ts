@@ -219,6 +219,26 @@ const migrations = [
       ALTER TABLE settlement_levels CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
       ALTER TABLE project_users CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
     `
+  },
+  {
+    version: '1.0.3',
+    description: 'Add project permissions table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS project_permissions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        project_id INT NOT NULL,
+        user_id INT NOT NULL,
+        permission ENUM('view', 'manage') DEFAULT 'view',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE INDEX idx_project_user (project_id, user_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      
+      ALTER TABLE projects ADD COLUMN creator_id INT DEFAULT NULL;
+      ALTER TABLE projects ADD FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE SET NULL;
+    `
   }
 ]
 

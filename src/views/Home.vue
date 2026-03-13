@@ -5,6 +5,7 @@
       <div class="p-6">
         <h1 class="text-xl font-bold tracking-tight">成研运营系统</h1>
         <button 
+          v-if="hasManagePermission"
           class="mt-6 w-full flex items-center justify-center gap-2 bg-primary hover:bg-blue-600 text-white py-2.5 px-4 rounded-lg font-medium transition-all shadow-sm"
           @click="showCreateProjectDialog = true"
         >
@@ -125,28 +126,35 @@
           </span>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
-          <button class="px-4 py-2 text-sm font-medium bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm"
+          <button v-if="hasManagePermission" class="px-4 py-2 text-sm font-medium bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm"
             @click="showSettlementConfigDialog = true">
             <el-icon class="text-slate-400"><Setting /></el-icon> 结算配置
           </button>
-          <button class="px-4 py-2 text-sm font-medium bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm"
+          <button v-if="hasManagePermission" class="px-4 py-2 text-sm font-medium bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm"
             @click="showApprovalConfigDialog = true">
             <el-icon class="text-slate-400"><Document /></el-icon> 立项配置
           </button>
-          <button class="px-4 py-2 text-sm font-medium bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm"
+          <button v-if="hasManagePermission" class="px-4 py-2 text-sm font-medium bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm"
             @click="handleEditProject">
             <el-icon class="text-slate-400"><Edit /></el-icon> 编辑
           </button>
           <button 
-            v-if="currentProject?.status !== '已结束'"
+            v-if="hasManagePermission && currentProject?.status !== '已结束'"
             class="px-4 py-2 text-sm font-medium bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-all flex items-center gap-2 shadow-sm"
             @click="handleEndProject">
             <el-icon><Check /></el-icon> 结束项目
           </button>
           <button 
+            v-if="hasManagePermission"
             class="px-4 py-2 text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all flex items-center gap-2"
             @click="handleDeleteProject">
             <el-icon><Delete /></el-icon> 删除
+          </button>
+          <button 
+            v-if="hasManagePermission"
+            class="px-4 py-2 text-sm font-medium bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all flex items-center gap-2 shadow-sm"
+            @click="openProjectPermissionsDialog">
+            <el-icon><Key /></el-icon> 项目权限
           </button>
         </div>
       </header>
@@ -185,7 +193,7 @@
           <h3 class="font-bold flex items-center gap-2">
             <el-icon class="text-primary"><Warning /></el-icon> 项目重要事项
           </h3>
-          <button class="text-xs font-medium text-primary hover:underline" @click="showAddImportantItemDialog = true">添加</button>
+          <button v-if="hasManagePermission" class="text-xs font-medium text-primary hover:underline" @click="showAddImportantItemDialog = true">添加</button>
         </div>
         <div class="divide-y divide-slate-100 dark:divide-slate-800">
           <div 
@@ -206,14 +214,14 @@
               <span class="text-sm font-medium text-slate-700 dark:text-slate-200">{{ item.title }}</span>
             </div>
             <div class="flex items-center gap-3">
-              <span class="text-xs text-slate-400">{{ item.date }}</span>
-              <button class="text-primary hover:text-blue-700 transition-colors" @click="editImportantItem(index)">
-                <el-icon class="text-sm"><Edit /></el-icon>
-              </button>
-              <button class="text-slate-400 hover:text-red-500 transition-colors" @click="deleteImportantItem(index)">
-                <el-icon class="text-sm"><Delete /></el-icon>
-              </button>
-            </div>
+                <span class="text-xs text-slate-400">{{ item.date }}</span>
+                <button v-if="hasManagePermission" class="text-primary hover:text-blue-700 transition-colors" @click="editImportantItem(index)">
+                  <el-icon class="text-sm"><Edit /></el-icon>
+                </button>
+                <button v-if="hasManagePermission" class="text-slate-400 hover:text-red-500 transition-colors" @click="deleteImportantItem(index)">
+                  <el-icon class="text-sm"><Delete /></el-icon>
+                </button>
+              </div>
           </div>
         </div>
       </section>
@@ -312,6 +320,7 @@
             </div>
           </div>
           <button 
+            v-if="hasManagePermission"
             class="px-3 py-1.5 text-xs font-medium bg-primary text-white rounded-lg flex items-center gap-1 shadow-sm"
             @click="showAddContractDialog = true"
             :disabled="currentContractType === 'main' && mainContractExists"
@@ -352,10 +361,10 @@
                 </td>
                 <td class="px-6 py-4">
                   <div class="flex items-center justify-center gap-4">
-                    <button class="text-primary hover:text-blue-700 transition-colors" @click="editContract(contract)">
+                    <button v-if="hasManagePermission" class="text-primary hover:text-blue-700 transition-colors" @click="editContract(contract)">
                       <el-icon><Edit /></el-icon>
                     </button>
-                    <button class="text-slate-400 hover:text-red-500 transition-colors" @click="deleteContract(index)">
+                    <button v-if="hasManagePermission" class="text-slate-400 hover:text-red-500 transition-colors" @click="deleteContract(index)">
                       <el-icon><Delete /></el-icon>
                     </button>
                   </div>
@@ -373,6 +382,7 @@
             <el-icon class="text-primary"><Document /></el-icon> 订单管理
           </h3>
           <button 
+            v-if="hasManagePermission"
             class="px-3 py-1.5 text-xs font-medium bg-primary text-white rounded-lg flex items-center gap-1 shadow-sm"
             @click="showAddOrderDialog = true"
           >
@@ -422,10 +432,10 @@
                 </td>
                 <td class="px-6 py-4">
                   <div class="flex items-center justify-center gap-4">
-                    <button class="text-primary hover:text-blue-700 transition-colors" @click="editOrder(order)">
+                    <button v-if="hasManagePermission" class="text-primary hover:text-blue-700 transition-colors" @click="editOrder(order)">
                       <el-icon><Edit /></el-icon>
                     </button>
-                    <button class="text-slate-400 hover:text-red-500 transition-colors" @click="deleteOrder(index)">
+                    <button v-if="hasManagePermission" class="text-slate-400 hover:text-red-500 transition-colors" @click="deleteOrder(index)">
                       <el-icon><Delete /></el-icon>
                     </button>
                   </div>
@@ -497,24 +507,28 @@
               {{ isFullscreen ? '退出全屏' : '全屏' }}
             </button>
             <button 
+              v-if="hasManagePermission"
               class="border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1"
               @click="downloadPersonList"
             >
               <el-icon class="text-[16px]"><Download /></el-icon> 下载
             </button>
             <button 
+              v-if="hasManagePermission"
               class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1"
               @click="showExcelImportDialog = true"
             >
               <el-icon class="text-[16px]"><Upload /></el-icon> Excel导入
             </button>
             <button 
+              v-if="hasManagePermission"
               class="bg-primary hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1"
               @click="showAddPersonDialog = true"
             >
               <el-icon class="text-[16px]"><Plus /></el-icon> 添加人员
             </button>
             <button 
+              v-if="hasManagePermission"
               class="border border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1"
               @click="confirmClearPersons"
             >
@@ -649,8 +663,8 @@
             >
               <template #default="{ row, $index }">
                 <div class="space-x-2">
-                  <el-button link type="primary" size="small" @click="editPerson(row)">编辑</el-button>
-                  <el-button link type="danger" size="small" @click="deletePerson($index)">删除</el-button>
+                  <el-button v-if="hasManagePermission" link type="primary" size="small" @click="editPerson(row)">编辑</el-button>
+                  <el-button v-if="hasManagePermission" link type="danger" size="small" @click="deletePerson($index)">删除</el-button>
                 </div>
               </template>
             </el-table-column>
@@ -683,6 +697,7 @@
             <el-icon class="text-primary"><ShoppingCart /></el-icon> 项目采购列表
           </h3>
           <button
+            v-if="hasManagePermission"
             class="px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm font-medium flex items-center gap-1"
             @click="openAddProjectPurchase"
           >
@@ -727,10 +742,10 @@
             <el-table-column label="操作" width="120" align="center" fixed="right">
               <template #default="{ row, $index }">
                 <div class="flex items-center justify-center gap-2">
-                  <el-button type="primary" link size="small" @click="editProjectPurchase(row, $index)">
+                  <el-button v-if="hasManagePermission" type="primary" link size="small" @click="editProjectPurchase(row, $index)">
                     <el-icon><Edit /></el-icon>
                   </el-button>
-                  <el-button type="danger" link size="small" @click="deleteProjectPurchase($index)">
+                  <el-button v-if="hasManagePermission" type="danger" link size="small" @click="deleteProjectPurchase($index)">
                     <el-icon><Delete /></el-icon>
                   </el-button>
                 </div>
@@ -976,6 +991,7 @@
             <el-icon class="text-primary"><Coin /></el-icon> 月成本列表
           </h3>
           <button
+            v-if="hasManagePermission"
             class="px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm font-medium flex items-center gap-1"
             @click="openAddMonthlyCost"
           >
@@ -1014,10 +1030,10 @@
             <el-table-column label="操作" width="120" align="center" fixed="right">
               <template #default="{ row, $index }">
                 <div class="flex items-center justify-center gap-2">
-                  <el-button type="primary" link size="small" @click="editMonthlyCost(row, $index)">
+                  <el-button v-if="hasManagePermission" type="primary" link size="small" @click="editMonthlyCost(row, $index)">
                     <el-icon><Edit /></el-icon>
                   </el-button>
-                  <el-button type="danger" link size="small" @click="deleteMonthlyCost($index)">
+                  <el-button v-if="hasManagePermission" type="danger" link size="small" @click="deleteMonthlyCost($index)">
                     <el-icon><Delete /></el-icon>
                   </el-button>
                 </div>
@@ -1043,6 +1059,7 @@
             <el-icon class="text-primary"><Wallet /></el-icon> 项目实际结算列表
           </h3>
           <button
+            v-if="hasManagePermission"
             class="px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm font-medium flex items-center gap-1"
             @click="openAddActualSettlement"
           >
@@ -1077,10 +1094,10 @@
             <el-table-column label="操作" width="120" align="center" fixed="right">
               <template #default="{ row, $index }">
                 <div class="flex items-center justify-center gap-2">
-                  <el-button type="primary" link size="small" @click="editActualSettlement(row, $index)">
+                  <el-button v-if="hasManagePermission" type="primary" link size="small" @click="editActualSettlement(row, $index)">
                     <el-icon><Edit /></el-icon>
                   </el-button>
-                  <el-button type="danger" link size="small" @click="deleteActualSettlement($index)">
+                  <el-button v-if="hasManagePermission" type="danger" link size="small" @click="deleteActualSettlement($index)">
                     <el-icon><Delete /></el-icon>
                   </el-button>
                 </div>
@@ -2249,6 +2266,114 @@
       </div>
     </div>
   </div>
+
+  <!-- 项目权限管理对话框 -->
+  <div v-if="showProjectPermissionsDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div class="bg-white dark:bg-card-dark rounded-lg shadow-xl w-full max-w-2xl p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold">项目权限管理</h3>
+        <button 
+          class="text-slate-400 hover:text-slate-600 transition-colors"
+          @click="showProjectPermissionsDialog = false"
+        >
+          <el-icon><Close /></el-icon>
+        </button>
+      </div>
+      
+      <div class="space-y-6">
+        <!-- 添加权限表单 -->
+        <div class="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+          <h4 class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">添加用户权限</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">选择用户</label>
+              <el-select v-model="permissionForm.user_id" placeholder="请选择用户" class="w-full" filterable>
+                <el-option
+                  v-for="user in systemUsers"
+                  :key="user.id"
+                  :label="`${user.name} (${user.account})`"
+                  :value="user.id"
+                />
+              </el-select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">权限类型</label>
+              <el-select v-model="permissionForm.permission" placeholder="请选择权限" class="w-full">
+                <el-option label="查看权限" value="view" />
+                <el-option label="管理权限" value="manage" />
+              </el-select>
+            </div>
+          </div>
+          <div class="mt-4">
+            <button 
+              class="px-4 py-2 text-sm font-medium bg-primary hover:bg-blue-600 text-white rounded-md transition-all"
+              @click="addProjectPermission"
+            >
+              添加权限
+            </button>
+          </div>
+        </div>
+        
+        <!-- 权限列表 -->
+        <div>
+          <h4 class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">当前权限列表</h4>
+          <div class="overflow-x-auto">
+            <el-table
+              :data="projectPermissions"
+              border
+              stripe
+              style="width: 100%"
+            >
+              <el-table-column
+                prop="user_name"
+                label="用户姓名"
+                min-width="120"
+              />
+              <el-table-column
+                prop="user_account"
+                label="用户账号"
+                min-width="120"
+              />
+              <el-table-column
+                prop="permission"
+                label="权限类型"
+                min-width="100"
+              >
+                <template #default="{ row }">
+                  <el-tag :type="row.permission === 'manage' ? 'primary' : 'info'" size="small">
+                    {{ row.permission === 'manage' ? '管理权限' : '查看权限' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column
+                label="操作"
+                width="120"
+                fixed="right"
+              >
+                <template #default="{ row }">
+                  <button 
+                    class="text-red-500 hover:text-red-700 transition-colors text-sm"
+                    @click="deleteProjectPermission(row.user_id)"
+                  >
+                    <el-icon class="text-sm mr-1"><Delete /></el-icon> 删除
+                  </button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex justify-end gap-2 mt-6">
+        <button 
+          class="px-4 py-2 text-sm font-medium border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+          @click="showProjectPermissionsDialog = false"
+        >
+          关闭
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -2256,7 +2381,7 @@ import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as XLSX from 'xlsx'
-import { projectApi, dataApi } from '../api'
+import { projectApi, dataApi, userApi } from '../api'
 
 const router = useRouter()
 const username = ref('')
@@ -2275,6 +2400,13 @@ const showEditProjectDialog = ref(false)
 const showApprovalConfigDialog = ref(false)
 const showAddImportantItemDialog = ref(false)
 const showAddContractDialog = ref(false)
+const showProjectPermissionsDialog = ref(false)
+const projectPermissions = ref<any[]>([])
+const systemUsers = ref<any[]>([])
+const permissionForm = reactive({
+  user_id: '',
+  permission: 'view'
+})
 const currentContractType = ref('main')
 
 // 订单管理相关
@@ -2993,7 +3125,7 @@ const defaultProjects = [
   }
 ]
 
-const projectList = ref(loadProjectsFromStorage() || defaultProjects)
+const projectList = ref(loadProjectsFromStorage() || [])
 
 // 监听项目列表变化，自动保存到localStorage
 watch(projectList, (newVal) => {
@@ -3023,7 +3155,7 @@ const filteredProjects = computed(() => {
   })
 })
 
-const currentProject = ref(projectList.value[0])
+const currentProject = ref(null)
 
 // 新建项目表单
 const newProject = reactive({
@@ -3361,6 +3493,9 @@ onMounted(async () => {
 // 从后端加载项目列表
 const loadProjects = async () => {
   try {
+    // 强制清除 localStorage 中的项目列表数据，确保使用后端返回的最新数据
+    localStorage.removeItem('project_list')
+    
     const projects = await projectApi.getAll()
     if (projects && projects.length > 0) {
       projectList.value = projects.map((p: any) => ({
@@ -3379,6 +3514,8 @@ const loadProjects = async () => {
         currentProject.value = projectList.value[0]
         // 加载当前项目的财务数据
         await loadFinancialData()
+        // 加载当前项目的权限
+        await loadProjectPermissions()
       }
     } else {
       // 后端返回空列表，说明没有项目，清空 localStorage
@@ -3388,22 +3525,10 @@ const loadProjects = async () => {
     }
   } catch (error) {
     console.error('加载项目列表失败:', error)
-    // 如果加载失败，使用 localStorage 中的数据
-    const saved = localStorage.getItem('project_list')
-    if (saved) {
-      try {
-        projectList.value = JSON.parse(saved)
-        if (projectList.value.length > 0) {
-          currentProject.value = projectList.value[0]
-        }
-      } catch (e) {
-        console.error('解析 localStorage 数据失败:', e)
-      }
-    } else {
-      // localStorage 也没有数据，使用默认值
-      projectList.value = defaultProjects
-      currentProject.value = defaultProjects[0]
-    }
+    // 清空项目列表，确保没有权限的项目不会显示
+    projectList.value = []
+    currentProject.value = null
+    localStorage.removeItem('project_list')
   }
 }
 
@@ -3478,6 +3603,8 @@ const handleProjectClick = async (project: any) => {
   localStorage.setItem('current_project_id', project.id.toString())
   // 加载当前项目的财务数据
   await loadFinancialData()
+  // 加载当前项目的权限
+  await loadProjectPermissions()
 }
 
 const handleEditProject = () => {
@@ -3678,6 +3805,124 @@ const handleEndProject = () => {
       ElMessage.error('结束项目失败，请重试')
     }
   }).catch(() => {})
+}
+
+// 项目权限管理相关函数
+const loadProjectPermissions = async () => {
+  if (!currentProject.value || !currentProject.value.id) {
+    console.error('加载项目权限失败: 项目不存在或项目ID不存在', currentProject.value)
+    return
+  }
+  
+  console.log('开始加载项目权限，项目ID:', currentProject.value.id)
+  
+  try {
+    const permissions = await projectApi.getPermissions(currentProject.value.id)
+    console.log('加载项目权限成功，数据:', permissions)
+    projectPermissions.value = permissions
+    
+    // 更新当前用户的权限
+    updateCurrentUserPermission()
+  } catch (error: any) {
+    console.error('加载项目权限失败:', error.message || error)
+    console.error('错误详情:', error)
+    // 不要显示错误消息，因为这可能是正常的权限检查失败
+    // ElMessage.error(`加载项目权限失败: ${error.message || '未知错误'}`)
+  }
+}
+
+// 当前用户的权限
+const currentUserPermission = ref('')
+
+// 更新当前用户的权限
+const updateCurrentUserPermission = () => {
+  const userStr = localStorage.getItem('user')
+  if (!userStr) return
+  
+  const user = JSON.parse(userStr)
+  const userPermission = projectPermissions.value.find(
+    (perm: any) => perm.user_account === user.username
+  )
+  
+  currentUserPermission.value = userPermission?.permission || ''
+  console.log('当前用户权限:', currentUserPermission.value)
+}
+
+// 检查用户是否有管理权限
+const hasManagePermission = computed(() => {
+  return currentUserPermission.value === 'manage'
+})
+
+// 检查用户是否有查看权限
+const hasViewPermission = computed(() => {
+  return currentUserPermission.value === 'view' || currentUserPermission.value === 'manage'
+})
+
+const loadSystemUsers = async () => {
+  try {
+    const users = await userApi.getAll()
+    systemUsers.value = users
+  } catch (error) {
+    console.error('加载系统用户失败:', error)
+    ElMessage.error('加载系统用户失败')
+  }
+}
+
+const addProjectPermission = async () => {
+  if (!currentProject.value?.id || !permissionForm.user_id) {
+    ElMessage.warning('请选择用户')
+    return
+  }
+  
+  try {
+    await projectApi.addPermission(currentProject.value.id, {
+      user_id: permissionForm.user_id,
+      permission: permissionForm.permission
+    })
+    await loadProjectPermissions()
+    ElMessage.success('权限添加成功')
+    // 重置表单
+    permissionForm.user_id = ''
+    permissionForm.permission = 'view'
+  } catch (error) {
+    console.error('添加权限失败:', error)
+    ElMessage.error('添加权限失败')
+  }
+}
+
+const deleteProjectPermission = async (userId: number) => {
+  if (!currentProject.value?.id) return
+  
+  ElMessageBox.confirm(
+    '确定要删除该用户的权限吗？',
+    '确认删除',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(async () => {
+    try {
+      await projectApi.deletePermission(currentProject.value!.id, userId)
+      await loadProjectPermissions()
+      ElMessage.success('权限删除成功')
+    } catch (error) {
+      console.error('删除权限失败:', error)
+      ElMessage.error('删除权限失败')
+    }
+  }).catch(() => {})  // 取消操作
+}
+
+// 打开项目权限对话框
+const openProjectPermissionsDialog = async () => {
+  if (!currentProject.value) {
+    ElMessage.warning('请先选择项目')
+    return
+  }
+  
+  await loadProjectPermissions()
+  await loadSystemUsers()
+  showProjectPermissionsDialog.value = true
 }
 
 const handleDeleteProject = () => {

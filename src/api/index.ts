@@ -72,6 +72,10 @@ class ApiService {
           throw new Error('Token expired and refresh failed')
         }
       }
+      // 403错误是权限问题，不抛出错误，返回空数组
+      if (response.status === 403) {
+        return [] as T
+      }
       const error = await response.json().catch(() => ({ error: 'Unknown error' }))
       throw new Error(error.error || `HTTP error! status: ${response.status}`)
     }
@@ -140,7 +144,16 @@ export const projectApi = {
     api.put<any>(`/projects/${id}`, data),
 
   delete: (id: number) =>
-    api.delete(`/projects/${id}`)
+    api.delete(`/projects/${id}`),
+
+  getPermissions: (projectId: number) =>
+    api.get<any[]>(`/projects/${projectId}/permissions`),
+
+  addPermission: (projectId: number, data: any) =>
+    api.post<any>(`/projects/${projectId}/permissions`, data),
+
+  deletePermission: (projectId: number, userId: number) =>
+    api.delete(`/projects/${projectId}/permissions/${userId}`)
 }
 
 export const dataApi = {

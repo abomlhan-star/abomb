@@ -22,9 +22,28 @@ const getProjectId = (req: AuthRequest): number => {
   return parseInt(req.headers['x-project-id'] as string) || 1
 }
 
+// 检查用户是否有权限访问项目
+const checkProjectPermission = async (projectId: number, userId: number): Promise<boolean> => {
+  const [rows] = await pool.execute(
+    `SELECT 1 FROM projects p
+     LEFT JOIN project_permissions pp ON p.id = pp.project_id
+     WHERE p.id = ? AND (pp.user_id = ? OR p.creator_id = ?)`,
+    [projectId, userId, userId]
+  )
+  return rows.length > 0
+}
+
 router.get('/contracts', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const projectId = getProjectId(req)
+    const userId = req.user!.id
+
+    // 检查权限
+    const hasPermission = await checkProjectPermission(projectId, userId)
+    if (!hasPermission) {
+      res.status(403).json({ error: 'No permission to access this project' })
+      return
+    }
 
     const [rows] = await pool.execute(
       'SELECT * FROM contracts WHERE project_id = ? ORDER BY created_at DESC',
@@ -40,6 +59,15 @@ router.get('/contracts', async (req: AuthRequest, res: Response): Promise<void> 
 router.post('/contracts', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const projectId = getProjectId(req)
+    const userId = req.user!.id
+
+    // 检查权限
+    const hasPermission = await checkProjectPermission(projectId, userId)
+    if (!hasPermission) {
+      res.status(403).json({ error: 'No permission to access this project' })
+      return
+    }
+
     const { type, name, code, amount, period, customer, attachment } = req.body
 
     const [result] = await pool.execute(
@@ -68,6 +96,16 @@ router.post('/contracts', async (req: AuthRequest, res: Response): Promise<void>
 router.put('/contracts/:id', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params
+    const projectId = getProjectId(req)
+    const userId = req.user!.id
+
+    // 检查权限
+    const hasPermission = await checkProjectPermission(projectId, userId)
+    if (!hasPermission) {
+      res.status(403).json({ error: 'No permission to access this project' })
+      return
+    }
+
     const { type, name, code, amount, period, customer, attachment } = req.body
 
     await pool.execute(
@@ -85,6 +123,15 @@ router.put('/contracts/:id', async (req: AuthRequest, res: Response): Promise<vo
 router.delete('/contracts/:id', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params
+    const projectId = getProjectId(req)
+    const userId = req.user!.id
+
+    // 检查权限
+    const hasPermission = await checkProjectPermission(projectId, userId)
+    if (!hasPermission) {
+      res.status(403).json({ error: 'No permission to access this project' })
+      return
+    }
 
     await pool.execute('DELETE FROM contracts WHERE id = ?', [id])
     res.json({ message: 'Contract deleted' })
@@ -97,6 +144,14 @@ router.delete('/contracts/:id', async (req: AuthRequest, res: Response): Promise
 router.get('/persons', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const projectId = getProjectId(req)
+    const userId = req.user!.id
+
+    // 检查权限
+    const hasPermission = await checkProjectPermission(projectId, userId)
+    if (!hasPermission) {
+      res.status(403).json({ error: 'No permission to access this project' })
+      return
+    }
 
     const [rows] = await pool.execute(
       'SELECT * FROM persons WHERE project_id = ? ORDER BY created_at DESC',
@@ -112,6 +167,15 @@ router.get('/persons', async (req: AuthRequest, res: Response): Promise<void> =>
 router.post('/persons', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const projectId = getProjectId(req)
+    const userId = req.user!.id
+
+    // 检查权限
+    const hasPermission = await checkProjectPermission(projectId, userId)
+    if (!hasPermission) {
+      res.status(403).json({ error: 'No permission to access this project' })
+      return
+    }
+
     const {
       name,
       team,
@@ -172,6 +236,16 @@ router.post('/persons', async (req: AuthRequest, res: Response): Promise<void> =
 router.put('/persons/:id', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params
+    const projectId = getProjectId(req)
+    const userId = req.user!.id
+
+    // 检查权限
+    const hasPermission = await checkProjectPermission(projectId, userId)
+    if (!hasPermission) {
+      res.status(403).json({ error: 'No permission to access this project' })
+      return
+    }
+
     const {
       name,
       team,
@@ -230,6 +304,15 @@ router.put('/persons/:id', async (req: AuthRequest, res: Response): Promise<void
 router.delete('/persons/:id', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params
+    const projectId = getProjectId(req)
+    const userId = req.user!.id
+
+    // 检查权限
+    const hasPermission = await checkProjectPermission(projectId, userId)
+    if (!hasPermission) {
+      res.status(403).json({ error: 'No permission to access this project' })
+      return
+    }
 
     await pool.execute('DELETE FROM persons WHERE id = ?', [id])
     res.json({ message: 'Person deleted' })
@@ -242,9 +325,17 @@ router.delete('/persons/:id', async (req: AuthRequest, res: Response): Promise<v
 router.delete('/persons', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const projectId = getProjectId(req)
+    const userId = req.user!.id
+
+    // 检查权限
+    const hasPermission = await checkProjectPermission(projectId, userId)
+    if (!hasPermission) {
+      res.status(403).json({ error: 'No permission to access this project' })
+      return
+    }
 
     await pool.execute('DELETE FROM persons WHERE project_id = ?', [projectId])
-    res.json({ message: 'All persons deleted for project' })
+    res.json({ message: 'All persons deleted' })
   } catch (error) {
     console.error('Delete all persons error:', error)
     res.status(500).json({ error: 'Failed to delete all persons' })
@@ -254,6 +345,14 @@ router.delete('/persons', async (req: AuthRequest, res: Response): Promise<void>
 router.get('/orders', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const projectId = getProjectId(req)
+    const userId = req.user!.id
+
+    // 检查权限
+    const hasPermission = await checkProjectPermission(projectId, userId)
+    if (!hasPermission) {
+      res.status(403).json({ error: 'No permission to access this project' })
+      return
+    }
 
     const [rows] = await pool.execute(
       'SELECT * FROM orders WHERE project_id = ? ORDER BY created_at DESC',
@@ -269,6 +368,15 @@ router.get('/orders', async (req: AuthRequest, res: Response): Promise<void> => 
 router.post('/orders', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const projectId = getProjectId(req)
+    const userId = req.user!.id
+
+    // 检查权限
+    const hasPermission = await checkProjectPermission(projectId, userId)
+    if (!hasPermission) {
+      res.status(403).json({ error: 'No permission to access this project' })
+      return
+    }
+
     const { code, period, order_date, attachment } = req.body
 
     const [result] = await pool.execute(
@@ -294,6 +402,15 @@ router.post('/orders', async (req: AuthRequest, res: Response): Promise<void> =>
 router.delete('/orders/:id', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params
+    const projectId = getProjectId(req)
+    const userId = req.user!.id
+
+    // 检查权限
+    const hasPermission = await checkProjectPermission(projectId, userId)
+    if (!hasPermission) {
+      res.status(403).json({ error: 'No permission to access this project' })
+      return
+    }
 
     await pool.execute('DELETE FROM orders WHERE id = ?', [id])
     res.json({ message: 'Order deleted' })

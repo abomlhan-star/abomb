@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check Token</title>
+</head>
+<body>
+    <h1>Token Check</h1>
+    <div id="result"></div>
+    <script>
+        const resultDiv = document.getElementById('result');
+        
+        // 检查localStorage中的token
+        const token = localStorage.getItem('token');
+        const user = localStorage.getItem('user');
+        const currentProjectId = localStorage.getItem('current_project_id');
+        
+        let html = '<h2>Local Storage Data:</h2>';
+        html += `<p><strong>Token:</strong> ${token ? '存在' : '不存在'}</p>`;
+        html += `<p><strong>User:</strong> ${user ? '存在' : '不存在'}</p>`;
+        html += `<p><strong>Current Project ID:</strong> ${currentProjectId || '不存在'}</p>`;
+        
+        if (user) {
+            try {
+                const userObj = JSON.parse(user);
+                html += `<h3>User Details:</h3>`;
+                html += `<p>Username: ${userObj.username}</p>`;
+                html += `<p>Name: ${userObj.name}</p>`;
+                html += `<p>Email: ${userObj.email}</p>`;
+                html += `<p>Role: ${userObj.role}</p>`;
+            } catch (e) {
+                html += `<p>User data is invalid: ${e.message}</p>`;
+            }
+        }
+        
+        resultDiv.innerHTML = html;
+    </script>
+</body>
+</html>
