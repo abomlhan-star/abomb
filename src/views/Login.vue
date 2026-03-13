@@ -126,8 +126,13 @@ const handleLogin = async () => {
     
     // 保存token和用户信息
     localStorage.setItem('token', response.token)
+    // 计算token过期时间（7天后）
+    const expireTime = new Date()
+    expireTime.setDate(expireTime.getDate() + 7)
+    localStorage.setItem('tokenExpireTime', expireTime.getTime().toString())
     localStorage.setItem('user', JSON.stringify({ 
       username: loginForm.username,
+      name: response.user?.name || loginForm.username,
       email: response.user?.email || 'admin@chengyan.com',
       role: response.user?.role || 'admin'
     }))

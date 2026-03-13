@@ -43,6 +43,35 @@ class ApiService {
     const response = await fetch(`${this.baseUrl}${endpoint}`, config)
 
     if (!response.ok) {
+      if (response.status === 401 && endpoint !== '/auth/refresh') {
+        // Token过期，尝试刷新
+        try {
+          const refreshResponse = await authApi.refreshToken()
+          // 保存新token和过期时间
+          localStorage.setItem('token', refreshResponse.token)
+          const expireTime = new Date()
+          expireTime.setDate(expireTime.getDate() + 7)
+          localStorage.setItem('tokenExpireTime', expireTime.getTime().toString())
+          // 用新token重新请求
+          defaultHeaders['Authorization'] = `Bearer ${refreshResponse.token}`
+          const retryResponse = await fetch(`${this.baseUrl}${endpoint}`, {
+            ...config,
+            headers: defaultHeaders
+          })
+          if (!retryResponse.ok) {
+            const error = await retryResponse.json().catch(() => ({ error: 'Unknown error' }))
+            throw new Error(error.error || `HTTP error! status: ${retryResponse.status}`)
+          }
+          return retryResponse.json()
+        } catch (refreshError) {
+          // 刷新失败，跳转到登录页面
+          localStorage.removeItem('token')
+          localStorage.removeItem('tokenExpireTime')
+          localStorage.removeItem('user')
+          window.location.href = '/login'
+          throw new Error('Token expired and refresh failed')
+        }
+      }
       const error = await response.json().catch(() => ({ error: 'Unknown error' }))
       throw new Error(error.error || `HTTP error! status: ${response.status}`)
     }
@@ -74,7 +103,10 @@ export const authApi = {
     api.post<{ token: string; user: any }>('/auth/login', credentials),
 
   getMe: () =>
-    api.get<any>('/auth/me')
+    api.get<any>('/auth/me'),
+
+  refreshToken: () =>
+    api.post<{ token: string; user: any }>('/auth/refresh')
 }
 
 export const userApi = {

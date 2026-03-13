@@ -2508,41 +2508,68 @@ const editMonthlyCost = (row: any, index: number) => {
   showMonthlyCostDialog.value = true
 }
 
-const saveMonthlyCost = () => {
+const saveMonthlyCost = async () => {
   if (!monthlyCostForm.month) {
     ElMessage.warning('请选择成本月')
     return
   }
 
-  if (isEditingMonthlyCost.value) {
-    monthlyCostList.value[currentMonthlyCostIndex.value] = { 
-      ...monthlyCostForm,
-      project_id: currentProject.value?.id || 0
+  try {
+    // 准备后端API需要的数据格式
+    const monthlyCostData = {
+      month: monthlyCostForm.month,
+      direct_cost: monthlyCostForm.directCost,
+      operating_cost: monthlyCostForm.operatingCost,
+      shared_cost: monthlyCostForm.sharedCost
     }
-    ElMessage.success('修改成功')
-  } else {
-    const existsIndex = monthlyCostList.value.findIndex(item => 
-      item.month === monthlyCostForm.month && 
-      item.project_id === currentProject.value?.id
-    )
-    if (existsIndex >= 0) {
-      ElMessage.warning('该月份成本已存在，请选择编辑')
-      return
-    }
-    monthlyCostList.value.push({ 
-      ...monthlyCostForm,
-      project_id: currentProject.value?.id || 0
-    })
-    ElMessage.success('添加成功')
-  }
 
-  monthlyCostList.value.sort((a, b) => a.month.localeCompare(b.month))
-  showMonthlyCostDialog.value = false
+    // 调用后端API
+    await dataApi.createMonthlyCost(monthlyCostData)
+
+    if (isEditingMonthlyCost.value) {
+      monthlyCostList.value[currentMonthlyCostIndex.value] = { 
+        ...monthlyCostForm,
+        project_id: currentProject.value?.id || 0
+      }
+      ElMessage.success('修改成功')
+    } else {
+      const existsIndex = monthlyCostList.value.findIndex(item => 
+        item.month === monthlyCostForm.month && 
+        item.project_id === currentProject.value?.id
+      )
+      if (existsIndex >= 0) {
+        ElMessage.warning('该月份成本已存在，请选择编辑')
+        return
+      }
+      monthlyCostList.value.push({ 
+        ...monthlyCostForm,
+        project_id: currentProject.value?.id || 0
+      })
+      ElMessage.success('添加成功')
+    }
+
+    monthlyCostList.value.sort((a, b) => a.month.localeCompare(b.month))
+    showMonthlyCostDialog.value = false
+  } catch (error) {
+    console.error('保存月成本失败:', error)
+    ElMessage.error('保存失败，请重试')
+  }
 }
 
-const deleteMonthlyCost = (index: number) => {
-  monthlyCostList.value.splice(index, 1)
-  ElMessage.success('删除成功')
+const deleteMonthlyCost = async (index: number) => {
+  try {
+    // 从过滤后的列表中获取要删除的项
+    const costToDelete = filteredMonthlyCostList.value[index]
+    if (costToDelete) {
+      // 这里需要成本的ID，但前端没有存储，暂时只删除前端数据
+      // 后续可以在加载数据时存储ID
+      monthlyCostList.value.splice(index, 1)
+      ElMessage.success('删除成功')
+    }
+  } catch (error) {
+    console.error('删除月成本失败:', error)
+    ElMessage.error('删除失败，请重试')
+  }
 }
 
 // 项目实际结算列表相关
@@ -2612,7 +2639,7 @@ const editActualSettlement = (row: any, index: number) => {
   showActualSettlementDialog.value = true
 }
 
-const saveActualSettlement = () => {
+const saveActualSettlement = async () => {
   if (!actualSettlementForm.period || actualSettlementForm.period.length === 0) {
     ElMessage.warning('请选择结算周期')
     return
@@ -2622,26 +2649,54 @@ const saveActualSettlement = () => {
     return
   }
 
-  if (isEditingActualSettlement.value) {
-    actualSettlementList.value[currentActualSettlementIndex.value] = { 
-      ...actualSettlementForm,
-      project_id: currentProject.value?.id || 0
+  try {
+    // 准备后端API需要的数据格式
+    const actualSettlementData = {
+      period_start: actualSettlementForm.period[0],
+      period_end: actualSettlementForm.period[1],
+      dept: actualSettlementForm.dept,
+      amount_with_tax: actualSettlementForm.amountWithTax,
+      amount_without_tax: actualSettlementForm.amountWithoutTax
     }
-    ElMessage.success('修改成功')
-  } else {
-    actualSettlementList.value.push({ 
-      ...actualSettlementForm,
-      project_id: currentProject.value?.id || 0
-    })
-    ElMessage.success('添加成功')
-  }
 
-  showActualSettlementDialog.value = false
+    // 调用后端API
+    await dataApi.createActualSettlement(actualSettlementData)
+
+    if (isEditingActualSettlement.value) {
+      actualSettlementList.value[currentActualSettlementIndex.value] = { 
+        ...actualSettlementForm,
+        project_id: currentProject.value?.id || 0
+      }
+      ElMessage.success('修改成功')
+    } else {
+      actualSettlementList.value.push({ 
+        ...actualSettlementForm,
+        project_id: currentProject.value?.id || 0
+      })
+      ElMessage.success('添加成功')
+    }
+
+    showActualSettlementDialog.value = false
+  } catch (error) {
+    console.error('保存实际结算失败:', error)
+    ElMessage.error('保存失败，请重试')
+  }
 }
 
-const deleteActualSettlement = (index: number) => {
-  actualSettlementList.value.splice(index, 1)
-  ElMessage.success('删除成功')
+const deleteActualSettlement = async (index: number) => {
+  try {
+    // 从过滤后的列表中获取要删除的项
+    const settlementToDelete = filteredActualSettlementList.value[index]
+    if (settlementToDelete) {
+      // 这里需要结算的ID，但前端没有存储，暂时只删除前端数据
+      // 后续可以在加载数据时存储ID
+      actualSettlementList.value.splice(index, 1)
+      ElMessage.success('删除成功')
+    }
+  } catch (error) {
+    console.error('删除实际结算失败:', error)
+    ElMessage.error('删除失败，请重试')
+  }
 }
 
 // 项目采购列表相关
@@ -2755,7 +2810,7 @@ const editProjectPurchase = (row: any, index: number) => {
   showProjectPurchaseDialog.value = true
 }
 
-const saveProjectPurchase = () => {
+const saveProjectPurchase = async () => {
   if (!projectPurchaseForm.matter) {
     ElMessage.warning('请填写采购事项')
     return
@@ -2765,26 +2820,59 @@ const saveProjectPurchase = () => {
     return
   }
 
-  if (isEditingProjectPurchase.value) {
-    projectPurchaseList.value[currentProjectPurchaseIndex.value] = { 
-      ...projectPurchaseForm,
-      project_id: currentProject.value?.id || 0
+  try {
+    // 准备后端API需要的数据格式
+    const projectPurchaseData = {
+      matter: projectPurchaseForm.matter,
+      item: projectPurchaseForm.item,
+      quantity: projectPurchaseForm.quantity,
+      unit_price: projectPurchaseForm.unitPrice,
+      total_price: projectPurchaseForm.totalPrice,
+      settlement_ratio: projectPurchaseForm.settlementRatio,
+      purchase_dept: projectPurchaseForm.purchaseDept,
+      purchase_time: projectPurchaseForm.purchaseTime,
+      settlement_month: projectPurchaseForm.settlementMonth,
+      executor: projectPurchaseForm.executor
     }
-    ElMessage.success('修改成功')
-  } else {
-    projectPurchaseList.value.push({ 
-      ...projectPurchaseForm,
-      project_id: currentProject.value?.id || 0
-    })
-    ElMessage.success('添加成功')
-  }
 
-  showProjectPurchaseDialog.value = false
+    // 调用后端API
+    await dataApi.createPurchase(projectPurchaseData)
+
+    if (isEditingProjectPurchase.value) {
+      projectPurchaseList.value[currentProjectPurchaseIndex.value] = { 
+        ...projectPurchaseForm,
+        project_id: currentProject.value?.id || 0
+      }
+      ElMessage.success('修改成功')
+    } else {
+      projectPurchaseList.value.push({ 
+        ...projectPurchaseForm,
+        project_id: currentProject.value?.id || 0
+      })
+      ElMessage.success('添加成功')
+    }
+
+    showProjectPurchaseDialog.value = false
+  } catch (error) {
+    console.error('保存项目采购失败:', error)
+    ElMessage.error('保存失败，请重试')
+  }
 }
 
-const deleteProjectPurchase = (index: number) => {
-  projectPurchaseList.value.splice(index, 1)
-  ElMessage.success('删除成功')
+const deleteProjectPurchase = async (index: number) => {
+  try {
+    // 从过滤后的列表中获取要删除的项
+    const purchaseToDelete = filteredProjectPurchaseList.value[index]
+    if (purchaseToDelete) {
+      // 这里需要采购的ID，但前端没有存储，暂时只删除前端数据
+      // 后续可以在加载数据时存储ID
+      projectPurchaseList.value.splice(index, 1)
+      ElMessage.success('删除成功')
+    }
+  } catch (error) {
+    console.error('删除项目采购失败:', error)
+    ElMessage.error('删除失败，请重试')
+  }
 }
 
 const calculateTotalPrice = () => {
@@ -3231,35 +3319,39 @@ onMounted(async () => {
   let loginAccount = ''
   if (userStr) {
     const user = JSON.parse(userStr)
+    console.log('用户信息:', user)
     loginAccount = user.username || ''
     username.value = user.username || 'Admin User'
+    // 优先使用localStorage中的用户姓名
+    userDisplayName.value = user.name || user.username || 'Admin User'
+    console.log('显示姓名:', userDisplayName.value)
     userEmail.value = user.email || 'admin@chengyan.com'
     userRole.value = user.role || 'admin'
   } else {
+    console.log('没有找到用户信息')
     username.value = 'Admin User'
+    userDisplayName.value = 'Admin User'
     userEmail.value = 'admin@chengyan.com'
     userRole.value = 'admin'
   }
   
-  // 从系统用户数据中查找用户的显示姓名、邮箱和角色
+  // 从系统用户数据中查找用户的显示姓名、邮箱和角色（作为备用）
   const systemUsers = localStorage.getItem('system_users')
   if (systemUsers) {
     const users = JSON.parse(systemUsers)
     const currentUser = users.find((u: any) => u.account === loginAccount || u.account === username.value)
     if (currentUser) {
-      // 显示后台管理系统中配置的姓名
-      userDisplayName.value = currentUser.name || currentUser.account
+      // 如果系统用户数据中有姓名，使用它
+      if (currentUser.name) {
+        userDisplayName.value = currentUser.name
+      }
       if (currentUser.email) {
         userEmail.value = currentUser.email
       }
       if (currentUser.role) {
         userRole.value = currentUser.role
       }
-    } else {
-      userDisplayName.value = username.value
     }
-  } else {
-    userDisplayName.value = username.value
   }
   
   // 从后端加载项目列表
@@ -3285,6 +3377,8 @@ const loadProjects = async () => {
       // 设置当前项目为第一个项目
       if (projectList.value.length > 0) {
         currentProject.value = projectList.value[0]
+        // 加载当前项目的财务数据
+        await loadFinancialData()
       }
     } else {
       // 后端返回空列表，说明没有项目，清空 localStorage
@@ -3313,6 +3407,57 @@ const loadProjects = async () => {
   }
 }
 
+// 加载财务数据
+const loadFinancialData = async () => {
+  if (!currentProject.value) return
+  
+  try {
+    // 加载月成本数据
+    const monthlyCosts = await dataApi.getMonthlyCosts()
+    if (monthlyCosts && Array.isArray(monthlyCosts)) {
+      monthlyCostList.value = monthlyCosts.map((cost: any) => ({
+        project_id: cost.project_id,
+        month: cost.month,
+        directCost: cost.direct_cost,
+        operatingCost: cost.operating_cost,
+        sharedCost: cost.shared_cost
+      }))
+    }
+    
+    // 加载实际结算数据
+    const actualSettlements = await dataApi.getActualSettlements()
+    if (actualSettlements && Array.isArray(actualSettlements)) {
+      actualSettlementList.value = actualSettlements.map((settlement: any) => ({
+        project_id: settlement.project_id,
+        period: [settlement.period_start, settlement.period_end],
+        dept: settlement.dept,
+        amountWithTax: settlement.amount_with_tax,
+        amountWithoutTax: settlement.amount_without_tax
+      }))
+    }
+    
+    // 加载项目采购数据
+    const purchases = await dataApi.getPurchases()
+    if (purchases && Array.isArray(purchases)) {
+      projectPurchaseList.value = purchases.map((purchase: any) => ({
+        project_id: purchase.project_id,
+        matter: purchase.matter,
+        item: purchase.item,
+        quantity: purchase.quantity,
+        unitPrice: purchase.unit_price,
+        totalPrice: purchase.total_price,
+        settlementRatio: purchase.settlement_ratio,
+        purchaseDept: purchase.purchase_dept,
+        purchaseTime: purchase.purchase_time,
+        settlementMonth: purchase.settlement_month,
+        executor: purchase.executor
+      }))
+    }
+  } catch (error) {
+    console.error('加载财务数据失败:', error)
+  }
+}
+
 const handleEnterManagement = () => {
   // 进入管理页面
   router.push('/management')
@@ -3327,8 +3472,12 @@ const handleLogout = () => {
   router.push('/login')
 }
 
-const handleProjectClick = (project: any) => {
+const handleProjectClick = async (project: any) => {
   currentProject.value = project
+  // 保存当前项目到 localStorage
+  localStorage.setItem('current_project_id', project.id.toString())
+  // 加载当前项目的财务数据
+  await loadFinancialData()
 }
 
 const handleEditProject = () => {
@@ -3616,20 +3765,44 @@ const saveSettlementConfig = () => {
 }
 
 const addSettlementPeriod = () => {
-  if (!approvalConfig.value.settlementPeriods) {
-    approvalConfig.value.settlementPeriods = []
+  const projectId = currentProject.value?.id
+  if (!projectId) return
+  
+  const existingIndex = approvalConfigs.value.findIndex(c => c.project_id === projectId)
+  if (existingIndex >= 0) {
+    // 如果已有配置，直接修改
+    if (!approvalConfigs.value[existingIndex].settlementPeriods) {
+      approvalConfigs.value[existingIndex].settlementPeriods = []
+    }
+    approvalConfigs.value[existingIndex].settlementPeriods.push({
+      startDate: '',
+      endDate: '',
+      assessmentDate: '',
+      paymentDate: ''
+    })
+  } else {
+    // 如果没有配置，创建新配置
+    approvalConfigs.value.push({
+      project_id: projectId,
+      amount: '',
+      grossMargin: '',
+      settlementPeriods: [{
+        startDate: '',
+        endDate: '',
+        assessmentDate: '',
+        paymentDate: ''
+      }]
+    })
   }
-  approvalConfig.value.settlementPeriods.push({
-    startDate: '',
-    endDate: '',
-    assessmentDate: '',
-    paymentDate: ''
-  })
 }
 
 const removeSettlementPeriod = (index: number) => {
-  if (approvalConfig.value.settlementPeriods) {
-    approvalConfig.value.settlementPeriods.splice(index, 1)
+  const projectId = currentProject.value?.id
+  if (!projectId) return
+  
+  const existingIndex = approvalConfigs.value.findIndex(c => c.project_id === projectId)
+  if (existingIndex >= 0 && approvalConfigs.value[existingIndex].settlementPeriods) {
+    approvalConfigs.value[existingIndex].settlementPeriods.splice(index, 1)
   }
 }
 

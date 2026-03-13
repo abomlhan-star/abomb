@@ -183,6 +183,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { userApi } from '../../api'
 
 // 角色选项
 const roleOptions = [
@@ -191,17 +192,7 @@ const roleOptions = [
 ]
 
 // 用户数据
-const users = ref([
-  {
-    id: 1,
-    account: 'admin',
-    name: '系统管理员',
-    email: 'admin@chengyan.com',
-    password: 'richinfo@123',
-    role: 'admin',
-    createdAt: '2026-03-04 10:00:00'
-  }
-])
+const users = ref<any[]>([])
 
 // 对话框显示状态
 const showAddUserDialog = ref(false)
@@ -209,6 +200,7 @@ const showResetPasswordDialog = ref(false)
 const isEditing = ref(false)
 const currentUser = ref<any>(null)
 const newPassword = ref('')
+const loading = ref(false)
 
 // 用户表单
 const userForm = reactive({
@@ -222,23 +214,25 @@ const userForm = reactive({
 
 // 初始化
 onMounted(() => {
-  // 从localStorage加载用户数据
-  const savedUsers = localStorage.getItem('system_users')
-  if (savedUsers) {
-    users.value = JSON.parse(savedUsers)
-  } else {
-    // 初始化默认用户
-    saveUsersToStorage()
-  }
+  loadUsers()
 })
 
-// 保存用户数据到localStorage
-const saveUsersToStorage = () => {
-  localStorage.setItem('system_users', JSON.stringify(users.value))
+// 加载用户列表
+const loadUsers = async () => {
+  loading.value = true
+  try {
+    const data = await userApi.getAll()
+    users.value = data
+  } catch (error) {
+    console.error('加载用户列表失败:', error)
+    ElMessage.error('加载用户列表失败')
+  } finally {
+    loading.value = false
+  }
 }
 
 // 保存用户
-const saveUser = () => {
+const saveUser = async () => {
   // 表单验证
   if (!userForm.account) {
     ElMessage.error('请输入用户账号')
@@ -263,47 +257,36 @@ const saveUser = () => {
     return
   }
   
-  if (isEditing.value) {
-    // 编辑用户
-    const index = users.value.findIndex(u => u.id === userForm.id)
-    if (index !== -1) {
-      users.value[index] = {
-        ...users.value[index],
+  loading.value = true
+  try {
+    if (isEditing.value) {
+      // 编辑用户
+      await userApi.update(userForm.id, {
         name: userForm.name,
         email: userForm.email,
         role: userForm.role
-      }
+      })
       ElMessage.success('用户编辑成功')
+    } else {
+      // 新增用户
+      await userApi.create({
+        account: userForm.account,
+        password: userForm.password,
+        name: userForm.name,
+        email: userForm.email,
+        role: userForm.role
+      })
+      ElMessage.success('用户新增成功')
     }
-  } else {
-    // 检查账号是否已存在
-    if (users.value.some(u => u.account === userForm.account)) {
-      ElMessage.error('用户账号已存在')
-      return
-    }
-    // 检查邮箱是否已存在
-    if (users.value.some(u => u.email === userForm.email)) {
-      ElMessage.error('邮箱已被使用')
-      return
-    }
-    
-    // 新增用户
-    const newUser = {
-      id: Date.now(),
-      account: userForm.account,
-      password: userForm.password,
-      name: userForm.name,
-      email: userForm.email,
-      role: userForm.role,
-      createdAt: new Date().toLocaleString('zh-CN')
-    }
-    users.value.push(newUser)
-    ElMessage.success('用户新增成功')
+    await loadUsers()
+    showAddUserDialog.value = false
+    resetForm()
+  } catch (error: any) {
+    console.error('保存用户失败:', error)
+    ElMessage.error(error.message || '保存用户失败')
+  } finally {
+    loading.value = false
   }
-  
-  saveUsersToStorage()
-  showAddUserDialog.value = false
-  resetForm()
 }
 
 // 编辑用户
@@ -334,12 +317,17 @@ const handleDelete = (row: any) => {
       cancelButtonText: '取消',
       type: 'warning'
     }
-  ).then(() => {
-    const index = users.value.findIndex(u => u.id === row.id)
-    if (index !== -1) {
-      users.value.splice(index, 1)
-      saveUsersToStorage()
+  ).then(async () => {
+    loading.value = true
+    try {
+      await userApi.delete(row.id)
       ElMessage.success('用户删除成功')
+      await loadUsers()
+    } catch (error) {
+      console.error('删除用户失败:', error)
+      ElMessage.error('删除用户失败')
+    } finally {
+      loading.value = false
     }
   }).catch(() => {
     // 取消删除
@@ -354,19 +342,23 @@ const handleResetPassword = (row: any) => {
 }
 
 // 确认重置密码
-const confirmResetPassword = () => {
+const confirmResetPassword = async () => {
   if (!newPassword.value) {
     ElMessage.error('请输入新密码')
     return
   }
   
-  const index = users.value.findIndex(u => u.id === currentUser.value.id)
-  if (index !== -1) {
-    users.value[index].password = newPassword.value
-    saveUsersToStorage()
+  loading.value = true
+  try {
+    await userApi.resetPassword(currentUser.value.id, newPassword.value)
     ElMessage.success('密码重置成功')
     showResetPasswordDialog.value = false
     newPassword.value = ''
+  } catch (error) {
+    console.error('重置密码失败:', error)
+    ElMessage.error('重置密码失败')
+  } finally {
+    loading.value = false
   }
 }
 

@@ -27,7 +27,7 @@
         </nav>
         
         <div class="flex items-center gap-3">
-          <span class="text-sm text-slate-500 dark:text-slate-400">{{ username }}</span>
+          <span class="text-sm text-slate-500 dark:text-slate-400">{{ userDisplayName }}</span>
           <button 
             class="text-slate-400 hover:text-red-500 transition-colors"
             @click="handleLogout"
@@ -46,17 +46,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const route = useRoute()
 
-const username = ref('admin')
+const userDisplayName = ref('')
 
 const currentRoute = computed(() => {
   return route.name as string
+})
+
+onMounted(() => {
+  // 从localStorage获取用户信息
+  const userStr = localStorage.getItem('user')
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      userDisplayName.value = user.name || user.username || 'Admin'
+    } catch (error) {
+      console.error('解析用户信息失败:', error)
+      userDisplayName.value = 'Admin'
+    }
+  } else {
+    userDisplayName.value = 'Admin'
+  }
 })
 
 const goBack = () => {
@@ -70,6 +86,7 @@ const navigateTo = (name: string) => {
 const handleLogout = () => {
   localStorage.removeItem('token')
   localStorage.removeItem('user')
+  localStorage.removeItem('tokenExpireTime')
   ElMessage.success('退出登录成功')
   router.push('/login')
 }
