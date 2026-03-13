@@ -239,6 +239,14 @@ const migrations = [
       ALTER TABLE projects ADD COLUMN creator_id INT DEFAULT NULL;
       ALTER TABLE projects ADD FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE SET NULL;
     `
+  },
+  {
+    version: '1.0.4',
+    description: 'Add employee_id field to persons table',
+    sql: `
+      ALTER TABLE persons ADD COLUMN employee_id VARCHAR(50) DEFAULT NULL;
+      ALTER TABLE persons ADD INDEX idx_employee_id (employee_id);
+    `
   }
 ]
 
