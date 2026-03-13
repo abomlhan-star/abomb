@@ -4,6 +4,18 @@ import { authMiddleware, AuthRequest } from '../middleware/auth'
 
 const router = Router()
 
+// 清空所有项目数据的端点（无需认证）
+router.delete('/projects/all', async (req: any, res: Response): Promise<void> => {
+  try {
+    // 由于外键约束和ON DELETE CASCADE，删除projects表中的所有记录会自动级联删除所有相关数据
+    await pool.execute('DELETE FROM projects')
+    res.json({ message: 'All projects and related data deleted successfully' })
+  } catch (error) {
+    console.error('Delete all projects error:', error)
+    res.status(500).json({ error: 'Failed to delete all projects' })
+  }
+})
+
 router.use(authMiddleware)
 
 const getProjectId = (req: AuthRequest): number => {
