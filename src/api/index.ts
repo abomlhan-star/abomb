@@ -21,9 +21,12 @@ class ApiService {
       ...headers
     }
 
-    const token = localStorage.getItem('token')
-    if (token) {
-      defaultHeaders['Authorization'] = `Bearer ${token}`
+    // 登录请求不需要携带token
+    if (!endpoint.includes('/auth/login')) {
+      const token = localStorage.getItem('token')
+      if (token) {
+        defaultHeaders['Authorization'] = `Bearer ${token}`
+      }
     }
 
     const currentProjectId = localStorage.getItem('current_project_id')
@@ -43,38 +46,17 @@ class ApiService {
     const response = await fetch(`${this.baseUrl}${endpoint}`, config)
 
     if (!response.ok) {
-      if (response.status === 401 && endpoint !== '/auth/refresh') {
-        // Token过期，尝试刷新
-        try {
-          const refreshResponse = await authApi.refreshToken()
-          // 保存新token和过期时间
-          localStorage.setItem('token', refreshResponse.token)
-          const expireTime = new Date()
-          expireTime.setDate(expireTime.getDate() + 7)
-          localStorage.setItem('tokenExpireTime', expireTime.getTime().toString())
-          // 用新token重新请求
-          defaultHeaders['Authorization'] = `Bearer ${refreshResponse.token}`
-          const retryResponse = await fetch(`${this.baseUrl}${endpoint}`, {
-            ...config,
-            headers: defaultHeaders
-          })
-          if (!retryResponse.ok) {
-            const error = await retryResponse.json().catch(() => ({ error: 'Unknown error' }))
-            throw new Error(error.error || `HTTP error! status: ${retryResponse.status}`)
-          }
-          return retryResponse.json()
-        } catch (refreshError) {
-          // 刷新失败，跳转到登录页面
-          localStorage.removeItem('token')
-          localStorage.removeItem('tokenExpireTime')
-          localStorage.removeItem('user')
-          window.location.href = '/login'
-          throw new Error('Token expired and refresh failed')
-        }
-      }
       // 403错误是权限问题，不抛出错误，返回空数组
       if (response.status === 403) {
         return [] as T
+      }
+      // 401错误是未授权，跳转到登录页面
+      if (response.status === 401) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('tokenExpireTime')
+        localStorage.removeItem('user')
+        window.location.href = '/login'
+        throw new Error('Unauthorized')
       }
       const error = await response.json().catch(() => ({ error: 'Unknown error' }))
       throw new Error(error.error || `HTTP error! status: ${response.status}`)
@@ -254,7 +236,33 @@ export const dataApi = {
     api.post<any>('/data/settlement-periods', data),
 
   deleteSettlementPeriod: (id: number) =>
-    api.delete(`/data/settlement-periods/${id}`)
+    api.delete(`/data/settlement-periods/${id}`),
+
+  // Groups API
+  getGroups: () =>
+    api.get<any[]>('/data/groups'),
+
+  createGroup: (data: any) =>
+    api.post<any>('/data/groups', data),
+
+  updateGroup: (id: number, data: any) =>
+    api.put<any>(`/data/groups/${id}`, data),
+
+  deleteGroup: (id: number) =>
+    api.delete(`/data/groups/${id}`),
+
+  // Customers API
+  getCustomers: () =>
+    api.get<any[]>('/data/customers'),
+
+  createCustomer: (data: any) =>
+    api.post<any>('/data/customers', data),
+
+  updateCustomer: (id: number, data: any) =>
+    api.put<any>(`/data/customers/${id}`, data),
+
+  deleteCustomer: (id: number) =>
+    api.delete(`/data/customers/${id}`)
 }
 
 export default api

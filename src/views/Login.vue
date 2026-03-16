@@ -19,7 +19,7 @@
           </p>
         </div>
         
-        <form class="space-y-6" @submit.prevent="handleLogin">
+        <form class="space-y-6">
           <div class="space-y-1">
             <input 
               v-model="loginForm.username"
@@ -61,7 +61,8 @@
           <button 
             :disabled="loading"
             class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-purple-900/50 hover:shadow-purple-500/30 transition-all duration-300 transform hover:-translate-y-0.5 active:scale-[0.98]"
-            type="submit"
+            type="button"
+            @click="handleLogin"
           >
             {{ loading ? '登录中...' : '登 录' }}
           </button>
@@ -98,6 +99,7 @@ const errors = reactive({
 })
 
 const handleLogin = async () => {
+  console.log('开始登录')
   let isValid = true
   
   if (!loginForm.username) {
@@ -116,14 +118,17 @@ const handleLogin = async () => {
   
   if (!isValid) return
   
+  console.log('表单验证通过')
   loading.value = true
   try {
+    console.log('开始调用登录API')
     // 调用后端API登录
     const response = await authApi.login({
       username: loginForm.username,
       password: loginForm.password
     })
     
+    console.log('登录API调用成功', response)
     // 保存token和用户信息
     localStorage.setItem('token', response.token)
     // 计算token过期时间（7天后）
@@ -137,7 +142,9 @@ const handleLogin = async () => {
       role: response.user?.role || 'admin'
     }))
     
+    console.log('保存token和用户信息成功')
     ElMessage.success('登录成功')
+    console.log('开始跳转到首页')
     router.push('/')
   } catch (error: any) {
     console.error('登录失败:', error)
@@ -146,4 +153,7 @@ const handleLogin = async () => {
     loading.value = false
   }
 }
+
+// 暴露给全局，方便在控制台调用
+(window as any).handleLogin = handleLogin
 </script>

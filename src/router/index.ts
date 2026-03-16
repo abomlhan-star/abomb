@@ -29,6 +29,11 @@ const routes = [
         path: 'users',
         name: 'users',
         component: () => import('../views/management/UserManagement.vue')
+      },
+      {
+        path: 'group-customer',
+        name: 'group-customer',
+        component: () => import('../views/management/GroupCustomerManagement.vue')
       }
     ]
   }

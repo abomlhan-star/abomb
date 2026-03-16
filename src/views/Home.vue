@@ -5,7 +5,7 @@
       <div class="p-6">
         <h1 class="text-xl font-bold tracking-tight">成研运营系统</h1>
         <button 
-          v-if="hasManagePermission"
+          v-if="isAdmin || hasManagePermission"
           class="mt-6 w-full flex items-center justify-center gap-2 bg-primary hover:bg-blue-600 text-white py-2.5 px-4 rounded-lg font-medium transition-all shadow-sm"
           @click="showCreateProjectDialog = true"
         >
@@ -545,7 +545,7 @@
             <el-table-column
               prop="name"
               label="人员姓名"
-              width="100"
+              width="120"
               fixed="left"
             >
               <template #default="{ row }">
@@ -555,6 +555,11 @@
                 </div>
               </template>
             </el-table-column>
+            <el-table-column
+              prop="employeeId"
+              label="工号"
+              width="80"
+            />
             <el-table-column
               prop="team"
               label="小组"
@@ -1518,15 +1523,36 @@
             <p v-if="errors.contractPeriod" class="text-xs text-red-500 mt-1">{{ errors.contractPeriod }}</p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">客户名称</label>
-            <input 
-              v-model="newProject.customer"
-              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-              placeholder="请输入客户名称"
-              type="text"
-            />
-            <p v-if="errors.customer" class="text-xs text-red-500 mt-1">{{ errors.customer }}</p>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">所属集团</label>
+            <el-select 
+              v-model="newProject.group_id"
+              class="w-full"
+              placeholder="请选择所属集团"
+            >
+              <el-option 
+                v-for="group in groups" 
+                :key="group.id"
+                :label="group.name"
+                :value="group.id"
+              />
+            </el-select>
           </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">所属客户</label>
+            <el-select 
+              v-model="newProject.customer_id"
+              class="w-full"
+              placeholder="请选择所属客户"
+            >
+              <el-option 
+                v-for="customer in newProjectFilteredCustomers"
+                :key="customer.id"
+                :label="customer.name"
+                :value="customer.id"
+              />
+            </el-select>
+          </div>
+
           <div>
             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">项目类型</label>
             <select 
@@ -1691,14 +1717,34 @@
             <p v-if="editErrors.contractPeriod" class="text-xs text-red-500 mt-1">{{ editErrors.contractPeriod }}</p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">客户名称</label>
-            <input 
-              v-model="editProject.customer"
-              class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-              placeholder="请输入客户名称"
-              type="text"
-            />
-            <p v-if="editErrors.customer" class="text-xs text-red-500 mt-1">{{ editErrors.customer }}</p>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">所属集团</label>
+            <el-select 
+              v-model="editProject.group_id"
+              class="w-full"
+              placeholder="请选择所属集团"
+            >
+              <el-option 
+                v-for="group in groups" 
+                :key="group.id"
+                :label="group.name"
+                :value="group.id"
+              />
+            </el-select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">所属客户</label>
+            <el-select 
+              v-model="editProject.customer_id"
+              class="w-full"
+              placeholder="请选择所属客户"
+            >
+              <el-option 
+                v-for="customer in filteredCustomers"
+                :key="customer.id"
+                :label="customer.name"
+                :value="customer.id"
+              />
+            </el-select>
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">项目类型</label>
@@ -2139,6 +2185,17 @@
               />
             </div>
             <div>
+              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">员工工号</label>
+              <input 
+                v-model="personForm.employeeId"
+                class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                placeholder="请输入员工工号"
+                type="text"
+              />
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
               <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">小组</label>
               <input 
                 v-model="personForm.team"
@@ -2147,8 +2204,6 @@
                 type="text"
               />
             </div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">岗位</label>
               <input 
@@ -2158,6 +2213,8 @@
                 type="text"
               />
             </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">结算部门</label>
               <input 
@@ -2167,8 +2224,6 @@
                 type="text"
               />
             </div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">对接人</label>
               <input 
@@ -2178,6 +2233,8 @@
                 type="text"
               />
             </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">结算等级</label>
               <select 
@@ -2194,6 +2251,16 @@
               <p v-if="filteredSettlementLevels.length === 0" class="text-xs text-orange-500 mt-1">
                 请先在"结算配置"中添加结算等级
               </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">投入类型</label>
+              <select 
+                v-model="personForm.inputType"
+                class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              >
+                <option value="实际">实际</option>
+                <option value="虚拟">虚拟</option>
+              </select>
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2392,6 +2459,7 @@ const searchQuery = ref('')
 
 // 计算属性：是否为系统管理员
 const isAdmin = computed(() => {
+  // 直接检查 userRole.value
   return userRole.value === 'admin'
 })
 const showCreateProjectDialog = ref(false)
@@ -2497,6 +2565,7 @@ const handleExcelFileChange = (event: Event) => {
       
       const person: any = {
         name: row[headerMap['姓名']] || row[headerMap['人员姓名']] || row[0] || '',
+        employeeId: row[headerMap['员工工号']] || row[headerMap['工号']] || row[headerMap['id']] || '',
         team: row[headerMap['团队']] || row[headerMap['所属团队']] || '',
         position: row[headerMap['岗位']] || row[headerMap['职位']] || '',
         settlementDept: row[headerMap['结算部门']] || row[headerMap['部门']] || '',
@@ -3126,6 +3195,8 @@ const defaultProjects = [
 ]
 
 const projectList = ref(loadProjectsFromStorage() || [])
+const groups = ref([])
+const customers = ref([])
 
 // 监听项目列表变化，自动保存到localStorage
 watch(projectList, (newVal) => {
@@ -3161,15 +3232,15 @@ const currentProject = ref(null)
 const newProject = reactive({
   name: '',
   contractPeriod: [] as string[],
-  customer: '',
   type: '运营类',
-  amount: ''
+  amount: '',
+  group_id: '',
+  customer_id: ''
 })
 
 const errors = reactive({
   name: '',
-  contractPeriod: '',
-  customer: ''
+  contractPeriod: ''
 })
 
 // 合同数据
@@ -3248,6 +3319,7 @@ const defaultPersons = [
   {
     project_id: 1,
     name: '张三',
+    employeeId: 'EMP001',
     team: '开发组',
     position: '前端工程师',
     settlementDept: '技术部',
@@ -3271,6 +3343,7 @@ watch(persons, (newVal) => {
 // 人员表单
 const personForm = reactive({
   name: '',
+  employeeId: '',
   team: '',
   position: '',
   settlementDept: '',
@@ -3338,6 +3411,22 @@ const settlementLevels = ref(loadSettlementLevelsFromStorage() || defaultSettlem
 // 过滤后的结算等级配置
 const filteredSettlementLevels = computed(() => {
   return settlementLevels.value.filter(level => level.project_id === currentProject.value?.id)
+})
+
+// 根据选择的集团过滤客户
+const filteredCustomers = computed(() => {
+  if (!editProject.group_id) {
+    return []
+  }
+  return customers.value.filter(customer => customer.group_id === editProject.group_id)
+})
+
+// 项目创建时根据选择的集团过滤客户
+const newProjectFilteredCustomers = computed(() => {
+  if (!newProject.group_id) {
+    return []
+  }
+  return customers.value.filter(customer => customer.group_id === newProject.group_id)
 })
 
 watch(settlementLevels, (newVal) => {
@@ -3432,17 +3521,17 @@ const contractForm = reactive({
 const editProject = reactive({
   name: '',
   contractPeriod: [] as string[],
-  customer: '',
   type: '运营类',
   amount: '',
   approvalAmount: '',
-  grossMargin: ''
+  grossMargin: '',
+  group_id: '',
+  customer_id: ''
 })
 
 const editErrors = reactive({
   name: '',
-  contractPeriod: '',
-  customer: ''
+  contractPeriod: ''
 })
 
 onMounted(async () => {
@@ -3488,6 +3577,8 @@ onMounted(async () => {
   
   // 从后端加载项目列表
   await loadProjects()
+  // 加载集团和客户数据
+  await loadGroupsAndCustomers()
 })
 
 // 从后端加载项目列表
@@ -3507,7 +3598,9 @@ const loadProjects = async () => {
         contractPeriod: p.contract_period || '',
         customer: p.customer || '',
         approvalAmount: p.approval_amount ? p.approval_amount.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) : '0.00',
-        grossMargin: p.gross_margin || '0.00'
+        grossMargin: p.gross_margin || '0.00',
+        group_id: p.group_id || '',
+        customer_id: p.customer_id || ''
       }))
       // 设置当前项目为第一个项目
       if (projectList.value.length > 0) {
@@ -3529,6 +3622,18 @@ const loadProjects = async () => {
     projectList.value = []
     currentProject.value = null
     localStorage.removeItem('project_list')
+  }
+}
+
+// 加载集团和客户数据
+const loadGroupsAndCustomers = async () => {
+  try {
+    const groupsData = await dataApi.getGroups()
+    groups.value = groupsData
+    const customersData = await dataApi.getCustomers()
+    customers.value = customersData
+  } catch (error) {
+    console.error('加载集团和客户数据失败:', error)
   }
 }
 
@@ -3624,17 +3729,17 @@ const handleEditProject = () => {
       editProject.contractPeriod = []
     }
     
-    editProject.customer = currentProject.value.customer || ''
     editProject.type = currentProject.value.type || '运营类'
     editProject.amount = currentProject.value.amount || ''
     editProject.approvalAmount = currentProject.value.approvalAmount || ''
     editProject.grossMargin = currentProject.value.grossMargin || ''
+    editProject.group_id = currentProject.value.group_id || ''
+    editProject.customer_id = currentProject.value.customer_id || ''
     
     // 重置错误信息
     Object.assign(editErrors, {
       name: '',
-      contractPeriod: '',
-      customer: ''
+      contractPeriod: ''
     })
     
     // 显示编辑对话框
@@ -3642,7 +3747,7 @@ const handleEditProject = () => {
   }
 }
 
-const updateProject = () => {
+const updateProject = async () => {
   // 表单验证
   let isValid = true
   
@@ -3660,35 +3765,64 @@ const updateProject = () => {
     editErrors.contractPeriod = ''
   }
   
-  if (!editProject.customer) {
-    editErrors.customer = '请输入客户名称'
+  if (!editProject.customer_id) {
+    ElMessage.warning('请选择所属客户')
     isValid = false
-  } else {
-    editErrors.customer = ''
   }
   
   if (!isValid) return
   
+  // 从所选客户中获取客户名称
+  const selectedCustomer = customers.value.find(c => c.id === editProject.customer_id)
+  const customerName = selectedCustomer ? selectedCustomer.name : ''
+  
   // 格式化合同周期（保留完整日期）
   const contractPeriodStr = `${editProject.contractPeriod[0]} ~ ${editProject.contractPeriod[1]}`
   
-  // 找到并更新项目
-  const projectIndex = projectList.value.findIndex(p => p.id === currentProject.value?.id)
-  if (projectIndex !== -1) {
-    projectList.value[projectIndex] = {
-      ...projectList.value[projectIndex],
-      label: editProject.name,
-      type: editProject.type,
-      amount: editProject.amount,
-      contractPeriod: contractPeriodStr,
-      customer: editProject.customer
+  try {
+    // 检查 currentProject 是否存在
+    if (!currentProject.value || !currentProject.value.id) {
+      ElMessage.error('项目信息不存在，请重新选择项目')
+      return
     }
     
-    // 更新当前项目
-    currentProject.value = projectList.value[projectIndex]
+    // 调用后端API更新项目
+    await projectApi.update(currentProject.value.id, {
+      name: editProject.name,
+      status: currentProject.value.status,
+      type: editProject.type,
+      amount: parseFloat(editProject.amount) || 0,
+      contract_period: contractPeriodStr,
+      customer: customerName,
+      group_id: editProject.group_id || null,
+      customer_id: editProject.customer_id || null,
+      approval_amount: parseFloat((editProject.approvalAmount || '').replace(/,/g, '')) || 0,
+      gross_margin: parseFloat(editProject.grossMargin) || 0
+    })
     
-    showEditProjectDialog.value = false
-    ElMessage.success('项目更新成功')
+    // 找到并更新项目
+    const projectIndex = projectList.value.findIndex(p => p.id === currentProject.value.id)
+    if (projectIndex !== -1) {
+      projectList.value[projectIndex] = {
+        ...projectList.value[projectIndex],
+        label: editProject.name,
+        type: editProject.type,
+        amount: editProject.amount,
+        contractPeriod: contractPeriodStr,
+        customer: customerName,
+        group_id: editProject.group_id,
+        customer_id: editProject.customer_id
+      }
+      
+      // 更新当前项目
+      currentProject.value = projectList.value[projectIndex]
+      
+      showEditProjectDialog.value = false
+      ElMessage.success('项目更新成功')
+    }
+  } catch (error: any) {
+    console.error('更新项目失败:', error)
+    ElMessage.error(`更新项目失败: ${error.message || '请重试'}`)
   }
 }
 
@@ -3710,14 +3844,16 @@ const createProject = async () => {
     errors.contractPeriod = ''
   }
   
-  if (!newProject.customer) {
-    errors.customer = '请输入客户名称'
+  if (!newProject.customer_id) {
+    ElMessage.warning('请选择所属客户')
     isValid = false
-  } else {
-    errors.customer = ''
   }
   
   if (!isValid) return
+  
+  // 从所选客户中获取客户名称
+  const selectedCustomer = customers.value.find(c => c.id === newProject.customer_id)
+  const customerName = selectedCustomer ? selectedCustomer.name : ''
   
   // 格式化合同周期（保留完整日期）
   const contractPeriodStr = `${newProject.contractPeriod[0]} ~ ${newProject.contractPeriod[1]}`
@@ -3730,7 +3866,9 @@ const createProject = async () => {
       type: newProject.type,
       amount: parseFloat(newProject.amount) || 0,
       contract_period: contractPeriodStr,
-      customer: newProject.customer,
+      customer: customerName,
+      group_id: newProject.group_id || null,
+      customer_id: newProject.customer_id || null,
       approval_amount: parseFloat(newProject.amount) || 0,
       gross_margin: 0
     })
@@ -3761,9 +3899,10 @@ const createProject = async () => {
     Object.assign(newProject, {
       name: '',
       contractPeriod: [],
-      customer: '',
       type: '运营类',
-      amount: ''
+      amount: '',
+      group_id: '',
+      customer_id: ''
     })
     
     ElMessage.success('项目创建成功')
@@ -3789,9 +3928,18 @@ const handleEndProject = () => {
     }
   ).then(async () => {
     try {
-      // 调用后端API更新项目状态
+      // 调用后端API更新项目状态，传递完整的项目信息
       await projectApi.update(currentProject.value.id, {
-        status: '已结束'
+        name: currentProject.value.label,
+        status: '已结束',
+        type: currentProject.value.type,
+        amount: parseFloat(currentProject.value.amount.replace(/,/g, '')) || 0,
+        contract_period: currentProject.value.contractPeriod,
+        customer: currentProject.value.customer,
+        group_id: currentProject.value.group_id || null,
+        customer_id: currentProject.value.customer_id || null,
+        approval_amount: parseFloat(currentProject.value.approvalAmount.replace(/,/g, '')) || 0,
+        gross_margin: parseFloat(currentProject.value.grossMargin) || 0
       })
       
       const projectIndex = projectList.value.findIndex(p => p.id === currentProject.value?.id)
