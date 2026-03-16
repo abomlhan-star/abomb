@@ -4300,8 +4300,8 @@ const saveContract = () => {
   // 合并开始日期和结束日期为period字段
   const period = `${contractForm.startDate} / ${contractForm.endDate}`
   
-  // 添加合同
-  contracts.value.push({
+  // 准备合同数据
+  const contractData = {
     project_id: currentProject.value?.id,
     type: currentContractType.value,
     name: contractForm.name,
@@ -4310,9 +4310,20 @@ const saveContract = () => {
     period: period,
     customer: contractForm.customer,
     attachment: contractForm.attachment
-  })
+  }
   
-  ElMessage.success('合同添加成功')
+  if (isEditingContract.value && currentContractIndex.value !== -1) {
+    // 更新现有合同
+    contracts.value[currentContractIndex.value] = contractData
+    ElMessage.success('合同更新成功')
+    // 重置编辑状态
+    isEditingContract.value = false
+    currentContractIndex.value = -1
+  } else {
+    // 添加新合同
+    contracts.value.push(contractData)
+    ElMessage.success('合同添加成功')
+  }
   
   // 重置表单
   Object.assign(contractForm, {
@@ -4334,6 +4345,10 @@ const previewAttachment = (attachment: any) => {
   console.log('预览附件:', attachment)
 }
 
+// 编辑合同相关状态
+const isEditingContract = ref(false)
+const currentContractIndex = ref(-1)
+
 const editContract = (contract: any) => {
   // 填充表单数据
   contractForm.name = contract.name
@@ -4349,6 +4364,15 @@ const editContract = (contract: any) => {
   
   contractForm.customer = contract.customer
   contractForm.attachment = contract.attachment
+  
+  // 设置编辑状态
+  isEditingContract.value = true
+  // 找到当前合同在 contracts 数组中的索引
+  currentContractIndex.value = contracts.value.findIndex(c => 
+    c.type === contract.type && 
+    c.name === contract.name && 
+    c.code === contract.code
+  )
   
   // 显示编辑对话框
   showAddContractDialog.value = true
