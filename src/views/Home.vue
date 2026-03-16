@@ -5,7 +5,6 @@
       <div class="p-6">
         <h1 class="text-xl font-bold tracking-tight">成研运营系统</h1>
         <button 
-          v-if="isAdmin || hasManagePermission"
           class="mt-6 w-full flex items-center justify-center gap-2 bg-primary hover:bg-blue-600 text-white py-2.5 px-4 rounded-lg font-medium transition-all shadow-sm"
           @click="showCreateProjectDialog = true"
         >
