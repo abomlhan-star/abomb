@@ -30,7 +30,7 @@ const checkProjectPermission = async (projectId: number, userId: number): Promis
      WHERE p.id = ? AND (pp.user_id = ? OR p.creator_id = ?)`,
     [projectId, userId, userId]
   )
-  return rows.length > 0
+  return Array.isArray(rows) && rows.length > 0
 }
 
 router.get('/contracts', async (req: AuthRequest, res: Response): Promise<void> => {
@@ -806,6 +806,131 @@ router.delete('/settlement-periods/:id', async (req: AuthRequest, res: Response)
   } catch (error) {
     console.error('Delete settlement period error:', error)
     res.status(500).json({ error: 'Failed to delete settlement period' })
+  }
+})
+
+// Groups API
+router.get('/groups', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const [rows] = await pool.execute(
+      'SELECT * FROM company_groups ORDER BY created_at DESC'
+    )
+    res.json(rows)
+  } catch (error) {
+    console.error('Get groups error:', error)
+    res.status(500).json({ error: 'Failed to get groups' })
+  }
+})
+
+router.post('/groups', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { name } = req.body
+
+    const [result] = await pool.execute(
+      `INSERT INTO company_groups (name)
+       VALUES (?)`,
+      [name]
+    )
+
+    res.status(201).json({
+      id: (result as any).insertId,
+      name
+    })
+  } catch (error) {
+    console.error('Create group error:', error)
+    res.status(500).json({ error: 'Failed to create group' })
+  }
+})
+
+router.put('/groups/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params
+    const { name } = req.body
+
+    await pool.execute(
+      `UPDATE company_groups SET name = ? WHERE id = ?`,
+      [name, id]
+    )
+
+    res.json({ id, name })
+  } catch (error) {
+    console.error('Update group error:', error)
+    res.status(500).json({ error: 'Failed to update group' })
+  }
+})
+
+router.delete('/groups/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params
+
+    await pool.execute('DELETE FROM company_groups WHERE id = ?', [id])
+    res.json({ message: 'Group deleted' })
+  } catch (error) {
+    console.error('Delete group error:', error)
+    res.status(500).json({ error: 'Failed to delete group' })
+  }
+})
+
+// Customers API
+router.get('/customers', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const [rows] = await pool.execute(
+      'SELECT c.*, g.name as group_name FROM customers c LEFT JOIN company_groups g ON c.group_id = g.id ORDER BY c.created_at DESC'
+    )
+    res.json(rows)
+  } catch (error) {
+    console.error('Get customers error:', error)
+    res.status(500).json({ error: 'Failed to get customers' })
+  }
+})
+
+router.post('/customers', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { name, group_id } = req.body
+
+    const [result] = await pool.execute(
+      `INSERT INTO customers (name, group_id)
+       VALUES (?, ?)`,
+      [name, group_id]
+    )
+
+    res.status(201).json({
+      id: (result as any).insertId,
+      name,
+      group_id
+    })
+  } catch (error) {
+    console.error('Create customer error:', error)
+    res.status(500).json({ error: 'Failed to create customer' })
+  }
+})
+
+router.put('/customers/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params
+    const { name, group_id } = req.body
+
+    await pool.execute(
+      `UPDATE customers SET name = ?, group_id = ? WHERE id = ?`,
+      [name, group_id, id]
+    )
+
+    res.json({ id, name, group_id })
+  } catch (error) {
+    console.error('Update customer error:', error)
+    res.status(500).json({ error: 'Failed to update customer' })
+  }
+})
+
+router.delete('/customers/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params
+
+    await pool.execute('DELETE FROM customers WHERE id = ?', [id])
+    res.json({ message: 'Customer deleted' })
+  } catch (error) {
+    console.error('Delete customer error:', error)
+    res.status(500).json({ error: 'Failed to delete customer' })
   }
 })
 

@@ -60,12 +60,14 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
       amount,
       contract_period,
       customer,
+      group_id,
+      customer_id,
       approval_amount,
       gross_margin
     } = req.body
 
-    if (!name || !customer) {
-      res.status(400).json({ error: 'Name and customer are required' })
+    if (!name) {
+      res.status(400).json({ error: 'Name is required' })
       return
     }
 
@@ -74,8 +76,8 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
       await connection.beginTransaction()
 
       const [result] = await connection.execute(
-        `INSERT INTO projects (name, status, type, amount, contract_period, customer, approval_amount, gross_margin, creator_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO projects (name, status, type, amount, contract_period, customer, group_id, customer_id, approval_amount, gross_margin, creator_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           name,
           status || '进行中',
@@ -83,6 +85,8 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
           amount || 0,
           contract_period,
           customer,
+          group_id,
+          customer_id,
           approval_amount || 0,
           gross_margin || 0,
           req.user!.id
@@ -108,6 +112,8 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
         amount,
         contract_period,
         customer,
+        group_id,
+        customer_id,
         approval_amount,
         gross_margin,
         creator_id: req.user!.id
@@ -135,6 +141,8 @@ router.put('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
       amount,
       contract_period,
       customer,
+      group_id,
+      customer_id,
       approval_amount,
       gross_margin
     } = req.body
@@ -148,16 +156,16 @@ router.put('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
       [id, userId, id, userId]
     )
 
-    if (permissionRows.length === 0) {
+    if (!Array.isArray(permissionRows) || permissionRows.length === 0) {
       res.status(403).json({ error: 'No permission to update this project' })
       return
     }
 
     await pool.execute(
       `UPDATE projects
-       SET name = ?, status = ?, type = ?, amount = ?, contract_period = ?, customer = ?, approval_amount = ?, gross_margin = ?
+       SET name = ?, status = ?, type = ?, amount = ?, contract_period = ?, customer = ?, group_id = ?, customer_id = ?, approval_amount = ?, gross_margin = ?
        WHERE id = ?`,
-      [name, status, type, amount, contract_period, customer, approval_amount, gross_margin, id]
+      [name, status, type, amount, contract_period, customer, group_id, customer_id, approval_amount, gross_margin, id]
     )
 
     res.json({
@@ -168,6 +176,8 @@ router.put('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
       amount,
       contract_period,
       customer,
+      group_id,
+      customer_id,
       approval_amount,
       gross_margin
     })
@@ -191,7 +201,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response): Promise<void> => 
       [id, userId, id, userId]
     )
 
-    if (permissionRows.length === 0) {
+    if (!Array.isArray(permissionRows) || permissionRows.length === 0) {
       res.status(403).json({ error: 'No permission to delete this project' })
       return
     }
@@ -218,7 +228,7 @@ router.get('/:id/permissions', async (req: AuthRequest, res: Response): Promise<
       [id, userId, userId]
     )
 
-    if (projectRows.length === 0) {
+    if (!Array.isArray(projectRows) || projectRows.length === 0) {
       res.status(403).json({ error: 'No permission to access this project' })
       return
     }
@@ -254,7 +264,7 @@ router.post('/:id/permissions', async (req: AuthRequest, res: Response): Promise
       [id, userId, id, userId]
     )
 
-    if (permissionRows.length === 0) {
+    if (!Array.isArray(permissionRows) || permissionRows.length === 0) {
       res.status(403).json({ error: 'No permission to manage project permissions' })
       return
     }
@@ -297,7 +307,7 @@ router.delete('/:id/permissions/:userId', async (req: AuthRequest, res: Response
       [id, currentUserId, id, currentUserId]
     )
 
-    if (permissionRows.length === 0) {
+    if (!Array.isArray(permissionRows) || permissionRows.length === 0) {
       res.status(403).json({ error: 'No permission to manage project permissions' })
       return
     }

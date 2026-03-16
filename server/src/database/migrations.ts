@@ -247,6 +247,37 @@ const migrations = [
       ALTER TABLE persons ADD COLUMN employee_id VARCHAR(50) DEFAULT NULL;
       ALTER TABLE persons ADD INDEX idx_employee_id (employee_id);
     `
+  },
+  {
+    version: '1.0.5',
+    description: 'Add groups and customers tables',
+    sql: `
+      CREATE TABLE IF NOT EXISTS company_groups (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(200) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE INDEX idx_name (name)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+      CREATE TABLE IF NOT EXISTS customers (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(200) NOT NULL,
+        group_id INT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (group_id) REFERENCES company_groups(id) ON DELETE SET NULL,
+        UNIQUE INDEX idx_name (name),
+        INDEX idx_group (group_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+      ALTER TABLE projects ADD COLUMN group_id INT DEFAULT NULL;
+      ALTER TABLE projects ADD COLUMN customer_id INT DEFAULT NULL;
+      ALTER TABLE projects ADD FOREIGN KEY (group_id) REFERENCES company_groups(id) ON DELETE SET NULL;
+      ALTER TABLE projects ADD FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
+      ALTER TABLE projects ADD INDEX idx_group (group_id);
+      ALTER TABLE projects ADD INDEX idx_customer_id (customer_id);
+    `
   }
 ]
 

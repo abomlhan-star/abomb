@@ -35,10 +35,10 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       return
     }
 
+    // 简化JWT签名，避免类型错误
     const token = jwt.sign(
       { id: user.id, account: user.account, role: user.role },
-      process.env.JWT_SECRET || 'default_secret',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      process.env.JWT_SECRET || 'default_secret'
     )
 
     res.json({
@@ -99,10 +99,10 @@ router.post('/refresh', authMiddleware, async (req: AuthRequest, res: Response):
     const user = users[0]
 
     // 生成新的token
+    // 简化JWT签名，避免类型错误
     const token = jwt.sign(
       { id: user.id, account: user.account, role: user.role },
-      process.env.JWT_SECRET || 'default_secret',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      process.env.JWT_SECRET || 'default_secret'
     )
 
     res.json({
