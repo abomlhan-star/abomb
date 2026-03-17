@@ -2612,7 +2612,7 @@ const cancelExcelImport = () => {
   duplicatePersonNames.value = []
 }
 
-const confirmExcelImport = () => {
+const confirmExcelImport = async () => {
   if (excelPreviewData.value.length === 0) {
     ElMessage.warning('没有可导入的数据')
     return
@@ -2625,16 +2625,41 @@ const confirmExcelImport = () => {
   }
   
   let importCount = 0
-  excelPreviewData.value.forEach(person => {
-    persons.value.push({ 
-      ...person,
-      project_id: currentProjectId
-    })
-    importCount++
-  })
-  
-  ElMessage.success(`成功导入${importCount}条人员数据`)
-  cancelExcelImport()
+  try {
+    for (const person of excelPreviewData.value) {
+      // 准备后端API需要的数据格式
+      const personData = {
+        name: person.name,
+        employee_id: person.employeeId,
+        team: person.team,
+        position: person.position,
+        settlement_dept: person.settlementDept,
+        contact: person.contact,
+        entry_date: person.entryDate,
+        exit_date: person.exitDate,
+        settlement_level: person.settlementLevel,
+        price_with_tax: person.priceWithTax,
+        price_without_tax: person.priceWithoutTax,
+        input_type: person.inputType
+      }
+      
+      // 调用后端API
+      await dataApi.createPerson(personData)
+      
+      // 添加到本地数组
+      persons.value.push({ 
+        ...person,
+        project_id: currentProjectId
+      })
+      importCount++
+    }
+    
+    ElMessage.success(`成功导入${importCount}条人员数据`)
+    cancelExcelImport()
+  } catch (error) {
+    console.error('导入人员数据失败:', error)
+    ElMessage.error('导入失败，请重试')
+  }
 }
 
 // 自由计算相关
@@ -2761,8 +2786,10 @@ const deleteMonthlyCost = async (index: number) => {
     // 从过滤后的列表中获取要删除的项
     const costToDelete = filteredMonthlyCostList.value[index]
     if (costToDelete) {
-      // 这里需要成本的ID，但前端没有存储，暂时只删除前端数据
-      // 后续可以在加载数据时存储ID
+      // 如果有ID，调用后端API删除
+      if (costToDelete.id) {
+        await dataApi.deleteMonthlyCost(costToDelete.id)
+      }
       monthlyCostList.value.splice(index, 1)
       ElMessage.success('删除成功')
     }
@@ -2888,8 +2915,10 @@ const deleteActualSettlement = async (index: number) => {
     // 从过滤后的列表中获取要删除的项
     const settlementToDelete = filteredActualSettlementList.value[index]
     if (settlementToDelete) {
-      // 这里需要结算的ID，但前端没有存储，暂时只删除前端数据
-      // 后续可以在加载数据时存储ID
+      // 如果有ID，调用后端API删除
+      if (settlementToDelete.id) {
+        await dataApi.deleteActualSettlement(settlementToDelete.id)
+      }
       actualSettlementList.value.splice(index, 1)
       ElMessage.success('删除成功')
     }
@@ -3064,8 +3093,10 @@ const deleteProjectPurchase = async (index: number) => {
     // 从过滤后的列表中获取要删除的项
     const purchaseToDelete = filteredProjectPurchaseList.value[index]
     if (purchaseToDelete) {
-      // 这里需要采购的ID，但前端没有存储，暂时只删除前端数据
-      // 后续可以在加载数据时存储ID
+      // 如果有ID，调用后端API删除
+      if (purchaseToDelete.id) {
+        await dataApi.deletePurchase(purchaseToDelete.id)
+      }
       projectPurchaseList.value.splice(index, 1)
       ElMessage.success('删除成功')
     }
@@ -3645,6 +3676,7 @@ const loadFinancialData = async () => {
     const monthlyCosts = await dataApi.getMonthlyCosts()
     if (monthlyCosts && Array.isArray(monthlyCosts)) {
       monthlyCostList.value = monthlyCosts.map((cost: any) => ({
+        id: cost.id,
         project_id: cost.project_id,
         month: cost.month,
         directCost: cost.direct_cost,
@@ -3657,6 +3689,7 @@ const loadFinancialData = async () => {
     const actualSettlements = await dataApi.getActualSettlements()
     if (actualSettlements && Array.isArray(actualSettlements)) {
       actualSettlementList.value = actualSettlements.map((settlement: any) => ({
+        id: settlement.id,
         project_id: settlement.project_id,
         period: [settlement.period_start, settlement.period_end],
         dept: settlement.dept,
@@ -3669,6 +3702,7 @@ const loadFinancialData = async () => {
     const purchases = await dataApi.getPurchases()
     if (purchases && Array.isArray(purchases)) {
       projectPurchaseList.value = purchases.map((purchase: any) => ({
+        id: purchase.id,
         project_id: purchase.project_id,
         matter: purchase.matter,
         item: purchase.item,
@@ -3680,6 +3714,58 @@ const loadFinancialData = async () => {
         purchaseTime: purchase.purchase_time,
         settlementMonth: purchase.settlement_month,
         executor: purchase.executor
+      }))
+    }
+    
+    // 加载人员数据
+    const personsData = await dataApi.getPersons()
+    if (personsData && Array.isArray(personsData)) {
+      persons.value = personsData.map((person: any) => ({
+        id: person.id,
+        project_id: person.project_id,
+        name: person.name,
+        employeeId: person.employee_id,
+        team: person.team,
+        position: person.position,
+        settlementDept: person.settlement_dept,
+        contact: person.contact,
+        entryDate: person.entry_date,
+        exitDate: person.exit_date,
+        settlementLevel: person.settlement_level,
+        priceWithTax: person.price_with_tax,
+        priceWithoutTax: person.price_without_tax,
+        inputType: person.input_type,
+        workDays: {}
+      }))
+    }
+    
+    // 加载合同数据
+    const contractsData = await dataApi.getContracts()
+    if (contractsData && Array.isArray(contractsData)) {
+      contracts.value = contractsData.map((contract: any) => ({
+        id: contract.id,
+        project_id: contract.project_id,
+        type: contract.type,
+        name: contract.name,
+        code: contract.code,
+        amount: contract.amount,
+        period: `${contract.start_date} / ${contract.end_date}`,
+        customer: contract.customer,
+        attachment: contract.attachment
+      }))
+    }
+    
+    // 加载订单数据
+    const ordersData = await dataApi.getOrders()
+    if (ordersData && Array.isArray(ordersData)) {
+      orders.value = ordersData.map((order: any) => ({
+        id: order.id,
+        project_id: order.project_id,
+        code: order.code,
+        period: `${order.start_date} / ${order.end_date}`,
+        orderDate: order.order_date,
+        amount: order.amount,
+        attachment: order.attachment
       }))
     }
   } catch (error) {
@@ -4290,53 +4376,74 @@ const handleFileUpload = (event: any) => {
   }
 }
 
-const saveContract = () => {
+const saveContract = async () => {
   // 验证表单
   if (!contractForm.name || !contractForm.code || !contractForm.amount || !contractForm.startDate || !contractForm.endDate || !contractForm.customer) {
     ElMessage.error('请填写所有必填字段')
     return
   }
   
-  // 合并开始日期和结束日期为period字段
-  const period = `${contractForm.startDate} / ${contractForm.endDate}`
-  
-  // 准备合同数据
-  const contractData = {
-    project_id: currentProject.value?.id,
-    type: currentContractType.value,
-    name: contractForm.name,
-    code: contractForm.code,
-    amount: contractForm.amount,
-    period: period,
-    customer: contractForm.customer,
-    attachment: contractForm.attachment
+  try {
+    // 准备后端API需要的数据格式
+    const contractData = {
+      type: currentContractType.value,
+      name: contractForm.name,
+      code: contractForm.code,
+      amount: contractForm.amount,
+      start_date: contractForm.startDate,
+      end_date: contractForm.endDate,
+      customer: contractForm.customer,
+      attachment: contractForm.attachment
+    }
+    
+    if (isEditingContract.value && currentContractIndex.value !== -1) {
+      // 更新现有合同
+      const currentContract = contracts.value[currentContractIndex.value]
+      if (currentContract.id) {
+        await dataApi.updateContract(currentContract.id, contractData)
+      }
+      // 合并开始日期和结束日期为period字段
+      const period = `${contractForm.startDate} / ${contractForm.endDate}`
+      contracts.value[currentContractIndex.value] = {
+        ...contractData,
+        id: currentContract.id,
+        project_id: currentProject.value?.id,
+        period: period
+      }
+      ElMessage.success('合同更新成功')
+      // 重置编辑状态
+      isEditingContract.value = false
+      currentContractIndex.value = -1
+    } else {
+      // 添加新合同
+      const createdContract = await dataApi.createContract(contractData)
+      // 合并开始日期和结束日期为period字段
+      const period = `${contractForm.startDate} / ${contractForm.endDate}`
+      contracts.value.push({
+        ...contractData,
+        id: createdContract.id,
+        project_id: currentProject.value?.id,
+        period: period
+      })
+      ElMessage.success('合同添加成功')
+    }
+    
+    // 重置表单
+    Object.assign(contractForm, {
+      name: '',
+      code: '',
+      amount: '',
+      startDate: '',
+      endDate: '',
+      customer: '',
+      attachment: null
+    })
+    
+    showAddContractDialog.value = false
+  } catch (error) {
+    console.error('保存合同失败:', error)
+    ElMessage.error('保存失败，请重试')
   }
-  
-  if (isEditingContract.value && currentContractIndex.value !== -1) {
-    // 更新现有合同
-    contracts.value[currentContractIndex.value] = contractData
-    ElMessage.success('合同更新成功')
-    // 重置编辑状态
-    isEditingContract.value = false
-    currentContractIndex.value = -1
-  } else {
-    // 添加新合同
-    contracts.value.push(contractData)
-    ElMessage.success('合同添加成功')
-  }
-  
-  // 重置表单
-  Object.assign(contractForm, {
-    name: '',
-    code: '',
-    amount: '',
-    startDate: '',
-    endDate: '',
-    customer: '',
-    attachment: null
-  })
-  
-  showAddContractDialog.value = false
 }
 
 const previewAttachment = (attachment: any) => {
@@ -4378,20 +4485,30 @@ const editContract = (contract: any) => {
   showAddContractDialog.value = true
 }
 
-const deleteContract = (index: number) => {
+const deleteContract = async (index: number) => {
   // 获取要删除的合同
   const contractToDelete = filteredContracts.value[index]
   
-  // 从contracts数组中找到并删除该合同
-  const contractIndex = contracts.value.findIndex(c => 
-    c.type === contractToDelete.type && 
-    c.name === contractToDelete.name && 
-    c.code === contractToDelete.code
-  )
-  
-  if (contractIndex !== -1) {
-    contracts.value.splice(contractIndex, 1)
-    ElMessage.success('合同删除成功')
+  try {
+    // 如果有ID，调用后端API删除
+    if (contractToDelete.id) {
+      await dataApi.deleteContract(contractToDelete.id)
+    }
+    
+    // 从contracts数组中找到并删除该合同
+    const contractIndex = contracts.value.findIndex(c => 
+      c.type === contractToDelete.type && 
+      c.name === contractToDelete.name && 
+      c.code === contractToDelete.code
+    )
+    
+    if (contractIndex !== -1) {
+      contracts.value.splice(contractIndex, 1)
+      ElMessage.success('合同删除成功')
+    }
+  } catch (error) {
+    console.error('删除合同失败:', error)
+    ElMessage.error('删除失败，请重试')
   }
 }
 
@@ -4405,53 +4522,70 @@ const handleOrderFileUpload = (event: any) => {
   }
 }
 
-const saveOrder = () => {
+const saveOrder = async () => {
   // 验证表单
   if (!orderForm.code || !orderForm.startDate || !orderForm.endDate || !orderForm.orderDate || !orderForm.amount) {
     ElMessage.error('请填写所有必填字段')
     return
   }
   
-  // 合并开始日期和结束日期为period字段
-  const period = `${orderForm.startDate} / ${orderForm.endDate}`
-  
-  if (isEditingOrder.value && currentOrderIndex.value !== -1) {
-    // 编辑现有订单
-    orders.value[currentOrderIndex.value] = {
-      project_id: currentProject.value?.id,
+  try {
+    // 准备后端API需要的数据格式
+    const orderData = {
       code: orderForm.code,
-      period: period,
-      orderDate: orderForm.orderDate,
+      start_date: orderForm.startDate,
+      end_date: orderForm.endDate,
+      order_date: orderForm.orderDate,
       amount: orderForm.amount,
       attachment: orderForm.attachment
     }
-    ElMessage.success('订单编辑成功')
-  } else {
-    // 添加新订单
-    orders.value.push({
-      project_id: currentProject.value?.id,
-      code: orderForm.code,
-      period: period,
-      orderDate: orderForm.orderDate,
-      amount: orderForm.amount,
-      attachment: orderForm.attachment
+    
+    if (isEditingOrder.value && currentOrderIndex.value !== -1) {
+      // 编辑现有订单
+      const currentOrder = orders.value[currentOrderIndex.value]
+      if (currentOrder.id) {
+        await dataApi.updateOrder(currentOrder.id, orderData)
+      }
+      // 合并开始日期和结束日期为period字段
+      const period = `${orderForm.startDate} / ${orderForm.endDate}`
+      orders.value[currentOrderIndex.value] = {
+        ...orderData,
+        id: currentOrder.id,
+        project_id: currentProject.value?.id,
+        period: period
+      }
+      ElMessage.success('订单编辑成功')
+    } else {
+      // 添加新订单
+      const createdOrder = await dataApi.createOrder(orderData)
+      // 合并开始日期和结束日期为period字段
+      const period = `${orderForm.startDate} / ${orderForm.endDate}`
+      orders.value.push({
+        ...orderData,
+        id: createdOrder.id,
+        project_id: currentProject.value?.id,
+        period: period
+      })
+      ElMessage.success('订单添加成功')
+    }
+    
+    // 重置表单
+    Object.assign(orderForm, {
+      code: '',
+      startDate: '',
+      endDate: '',
+      orderDate: '',
+      amount: '',
+      attachment: null
     })
-    ElMessage.success('订单添加成功')
+    
+    showAddOrderDialog.value = false
+    isEditingOrder.value = false
+    currentOrderIndex.value = -1
+  } catch (error) {
+    console.error('保存订单失败:', error)
+    ElMessage.error('保存失败，请重试')
   }
-  
-  // 重置表单
-  Object.assign(orderForm, {
-    code: '',
-    startDate: '',
-    endDate: '',
-    orderDate: '',
-    amount: '',
-    attachment: null
-  })
-  
-  showAddOrderDialog.value = false
-  isEditingOrder.value = false
-  currentOrderIndex.value = -1
 }
 
 const previewOrderAttachment = (attachment: any) => {
@@ -4487,12 +4621,21 @@ const editOrder = (order: any) => {
   showAddOrderDialog.value = true
 }
 
-const deleteOrder = (index: number) => {
+const deleteOrder = async (index: number) => {
   const orderToDelete = filteredOrders.value[index]
-  const orderIndex = orders.value.findIndex(o => o.code === orderToDelete.code && o.project_id === orderToDelete.project_id)
-  if (orderIndex !== -1) {
-    orders.value.splice(orderIndex, 1)
-    ElMessage.success('订单删除成功')
+  try {
+    // 如果有ID，调用后端API删除
+    if (orderToDelete.id) {
+      await dataApi.deleteOrder(orderToDelete.id)
+    }
+    const orderIndex = orders.value.findIndex(o => o.code === orderToDelete.code && o.project_id === orderToDelete.project_id)
+    if (orderIndex !== -1) {
+      orders.value.splice(orderIndex, 1)
+      ElMessage.success('订单删除成功')
+    }
+  } catch (error) {
+    console.error('删除订单失败:', error)
+    ElMessage.error('删除失败，请重试')
   }
 }
 
@@ -4510,46 +4653,73 @@ const handleSettlementLevelChange = () => {
   }
 }
 
-const savePerson = () => {
+const savePerson = async () => {
   // 验证表单
   if (!personForm.name || !personForm.team || !personForm.position || !personForm.settlementDept || !personForm.contact || !personForm.entryDate || !personForm.settlementLevel) {
     ElMessage.error('请填写所有必填字段')
     return
   }
   
-  if (isEditingPerson.value && currentPersonIndex.value !== -1) {
-    // 编辑现有人员
-    persons.value[currentPersonIndex.value] = {
-      ...personForm,
-      project_id: currentProject.value?.id
+  try {
+    // 准备后端API需要的数据格式
+    const personData = {
+      name: personForm.name,
+      employee_id: personForm.employeeId,
+      team: personForm.team,
+      position: personForm.position,
+      settlement_dept: personForm.settlementDept,
+      contact: personForm.contact,
+      entry_date: personForm.entryDate,
+      exit_date: personForm.exitDate,
+      settlement_level: personForm.settlementLevel,
+      price_with_tax: personForm.priceWithTax,
+      price_without_tax: personForm.priceWithoutTax,
+      input_type: personForm.inputType
     }
-    ElMessage.success('人员编辑成功')
-  } else {
-    // 添加新人员
-    persons.value.push({
-      ...personForm,
-      project_id: currentProject.value?.id
+    
+    if (isEditingPerson.value && currentPersonIndex.value !== -1) {
+      // 编辑现有人员
+      const currentPerson = persons.value[currentPersonIndex.value]
+      if (currentPerson.id) {
+        await dataApi.updatePerson(currentPerson.id, personData)
+      }
+      persons.value[currentPersonIndex.value] = {
+        ...personForm,
+        project_id: currentProject.value?.id
+      }
+      ElMessage.success('人员编辑成功')
+    } else {
+      // 添加新人员
+      const createdPerson = await dataApi.createPerson(personData)
+      persons.value.push({
+        ...personForm,
+        id: createdPerson.id,
+        project_id: currentProject.value?.id
+      })
+      ElMessage.success('人员添加成功')
+    }
+    
+    // 重置表单
+    Object.assign(personForm, {
+      name: '',
+      team: '',
+      position: '',
+      settlementDept: '',
+      contact: '',
+      entryDate: '',
+      exitDate: '',
+      settlementLevel: '',
+      priceWithTax: 0,
+      priceWithoutTax: 0
     })
-    ElMessage.success('人员添加成功')
+    
+    showAddPersonDialog.value = false
+    isEditingPerson.value = false
+    currentPersonIndex.value = -1
+  } catch (error) {
+    console.error('保存人员失败:', error)
+    ElMessage.error('保存失败，请重试')
   }
-  
-  // 重置表单
-  Object.assign(personForm, {
-    name: '',
-    team: '',
-    position: '',
-    settlementDept: '',
-    contact: '',
-    entryDate: '',
-    exitDate: '',
-    settlementLevel: '',
-    priceWithTax: 0,
-    priceWithoutTax: 0
-  })
-  
-  showAddPersonDialog.value = false
-  isEditingPerson.value = false
-  currentPersonIndex.value = -1
 }
 
 const editPerson = (person: any) => {
@@ -4562,18 +4732,27 @@ const editPerson = (person: any) => {
   showAddPersonDialog.value = true
 }
 
-const deletePerson = (index: number) => {
+const deletePerson = async (index: number) => {
   // 从过滤后的人员列表中获取要删除的人员
   const personToDelete = filteredPersons.value[index]
   if (personToDelete) {
-    // 在原始人员数组中找到对应的索引
-    const originalIndex = persons.value.findIndex(p => 
-      p.name === personToDelete.name && 
-      p.project_id === personToDelete.project_id
-    )
-    if (originalIndex !== -1) {
-      persons.value.splice(originalIndex, 1)
-      ElMessage.success('人员删除成功')
+    try {
+      // 如果有ID，调用后端API删除
+      if (personToDelete.id) {
+        await dataApi.deletePerson(personToDelete.id)
+      }
+      // 在原始人员数组中找到对应的索引
+      const originalIndex = persons.value.findIndex(p => 
+        p.name === personToDelete.name && 
+        p.project_id === personToDelete.project_id
+      )
+      if (originalIndex !== -1) {
+        persons.value.splice(originalIndex, 1)
+        ElMessage.success('人员删除成功')
+      }
+    } catch (error) {
+      console.error('删除人员失败:', error)
+      ElMessage.error('删除失败，请重试')
     }
   }
 }
