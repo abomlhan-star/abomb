@@ -40,15 +40,15 @@
           href="#"
           @click.prevent="handleProjectClick(project)"
         >
-          <div class="flex justify-between items-center mb-1">
+          <div class="flex justify-between items-start mb-1">
             <span :class="[
-              'font-medium transition-all',
+              'font-medium transition-all flex-1',
               currentProject?.id === project.id ? 'font-semibold text-primary' : 'text-slate-700 dark:text-slate-300 group-hover:text-primary'
             ]">
               {{ project.label }}
             </span>
             <span :class="[
-              'px-2 py-0.5 text-[10px] rounded-full',
+              'px-2 py-0.5 text-[10px] rounded-full flex-shrink-0',
               project.status === '已结束' 
                 ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400' 
                 : 'bg-blue-100 dark:bg-blue-800 text-primary'
@@ -112,7 +112,7 @@
 
       <!-- 有项目时显示项目详情 -->
       <template v-else>
-      <header class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <header class="flex flex-row items-center justify-between gap-4">
         <div class="flex items-center gap-3">
           <h2 class="text-2xl font-bold tracking-tight">{{ currentProject?.label || '请选择项目' }}</h2>
           <span :class="[
