@@ -130,7 +130,7 @@
             <el-icon class="text-slate-400"><Setting /></el-icon> 结算配置
           </button>
           <button v-if="hasManagePermission" class="px-4 py-2 text-sm font-medium bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm"
-            @click="showApprovalConfigDialog = true">
+            @click="openApprovalConfigDialog">
             <el-icon class="text-slate-400"><Document /></el-icon> 立项配置
           </button>
           <button v-if="hasManagePermission" class="px-4 py-2 text-sm font-medium bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm"
@@ -1801,7 +1801,7 @@
             <div>
               <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">立项金额</label>
               <input 
-                v-model="approvalConfig.amount"
+                v-model="approvalConfigForm.amount"
                 class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                 placeholder="请输入立项金额"
                 type="text"
@@ -1810,7 +1810,7 @@
             <div>
               <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">立项毛利率</label>
               <input 
-                v-model="approvalConfig.grossMargin"
+                v-model="approvalConfigForm.grossMargin"
                 class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                 placeholder="请输入立项毛利率"
                 type="text"
@@ -1822,7 +1822,7 @@
             <h4 class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">结算周期配置</h4>
             <div class="space-y-4">
               <div 
-                v-for="(period, index) in approvalConfig.settlementPeriods" 
+                v-for="(period, index) in approvalConfigForm.settlementPeriods" 
                 :key="index"
                 class="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg"
               >
@@ -2640,7 +2640,8 @@ const confirmExcelImport = async () => {
         settlement_level: person.settlementLevel,
         price_with_tax: person.priceWithTax,
         price_without_tax: person.priceWithoutTax,
-        input_type: person.inputType
+        input_type: person.inputType === '实际' ? 'actual' : 'virtual',
+        project_id: currentProject.value?.id
       }
       
       // 调用后端API
@@ -3504,6 +3505,62 @@ const approvalConfig = computed(() => {
   }
 })
 
+// 立项配置表单（响应式）
+const approvalConfigForm = reactive({
+  amount: '',
+  grossMargin: '',
+  settlementPeriods: [] as Array<{
+    startDate: string
+    endDate: string
+    assessmentDate: string
+    paymentDate: string
+  }>
+})
+
+// 打开立项配置对话框时，初始化表单数据
+const openApprovalConfigDialog = async () => {
+  const config = approvalConfigs.value.find(c => c.project_id === currentProject.value?.id)
+  if (config) {
+    approvalConfigForm.amount = config.amount || ''
+    approvalConfigForm.grossMargin = config.grossMargin || ''
+  } else {
+    approvalConfigForm.amount = ''
+    approvalConfigForm.grossMargin = ''
+  }
+  
+  // 从后端加载结算周期数据
+  try {
+    const periods = await dataApi.getSettlementPeriods()
+    if (periods && periods.length > 0) {
+      // 将日期格式转换为 YYYY-MM-DD
+      const formatDate = (date: string) => {
+        if (!date) return ''
+        // 如果已经是 YYYY-MM-DD 格式，直接返回
+        if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          return date
+        }
+        // 否则转换为 YYYY-MM-DD 格式
+        const d = new Date(date)
+        return d.toISOString().split('T')[0]
+      }
+      
+      approvalConfigForm.settlementPeriods = periods.map((p: any) => ({
+        startDate: formatDate(p.start_date),
+        endDate: formatDate(p.end_date),
+        assessmentDate: formatDate(p.assessment_date),
+        paymentDate: formatDate(p.payment_date)
+      }))
+    } else {
+      approvalConfigForm.settlementPeriods = []
+    }
+  } catch (error) {
+    console.error('加载结算周期失败:', error)
+    approvalConfigForm.settlementPeriods = []
+  }
+  
+  showApprovalConfigDialog.value = true
+}
+
 // 项目重要事项
 const importantItems = ref([
   {
@@ -4354,45 +4411,16 @@ const saveSettlementConfig = async () => {
 }
 
 const addSettlementPeriod = () => {
-  const projectId = currentProject.value?.id
-  if (!projectId) return
-  
-  const existingIndex = approvalConfigs.value.findIndex(c => c.project_id === projectId)
-  if (existingIndex >= 0) {
-    // 如果已有配置，直接修改
-    if (!approvalConfigs.value[existingIndex].settlementPeriods) {
-      approvalConfigs.value[existingIndex].settlementPeriods = []
-    }
-    approvalConfigs.value[existingIndex].settlementPeriods.push({
-      startDate: '',
-      endDate: '',
-      assessmentDate: '',
-      paymentDate: ''
-    })
-  } else {
-    // 如果没有配置，创建新配置
-    approvalConfigs.value.push({
-      project_id: projectId,
-      amount: '',
-      grossMargin: '',
-      settlementPeriods: [{
-        startDate: '',
-        endDate: '',
-        assessmentDate: '',
-        paymentDate: ''
-      }]
-    })
-  }
+  approvalConfigForm.settlementPeriods.push({
+    startDate: '',
+    endDate: '',
+    assessmentDate: '',
+    paymentDate: ''
+  })
 }
 
 const removeSettlementPeriod = (index: number) => {
-  const projectId = currentProject.value?.id
-  if (!projectId) return
-  
-  const existingIndex = approvalConfigs.value.findIndex(c => c.project_id === projectId)
-  if (existingIndex >= 0 && approvalConfigs.value[existingIndex].settlementPeriods) {
-    approvalConfigs.value[existingIndex].settlementPeriods.splice(index, 1)
-  }
+  approvalConfigForm.settlementPeriods.splice(index, 1)
 }
 
 const saveApprovalConfig = async () => {
@@ -4400,10 +4428,41 @@ const saveApprovalConfig = async () => {
     // 保存立项配置到后端
     await dataApi.saveApprovalConfig({
       project_id: currentProject.value?.id,
-      amount: approvalConfig.value.amount,
-      gross_margin: approvalConfig.value.grossMargin,
-      settlement_periods: approvalConfig.value.settlementPeriods
+      amount: approvalConfigForm.amount,
+      gross_margin: approvalConfigForm.grossMargin
     })
+    
+    // 先删除现有的结算周期
+    const existingPeriods = await dataApi.getSettlementPeriods()
+    for (const period of existingPeriods) {
+      if (period.id) {
+        await dataApi.deleteSettlementPeriod(period.id)
+      }
+    }
+    
+    // 保存新的结算周期
+    for (const period of approvalConfigForm.settlementPeriods) {
+      if (period.startDate || period.endDate || period.assessmentDate || period.paymentDate) {
+        // 将日期格式转换为 YYYY-MM-DD
+        const formatDate = (date: string) => {
+          if (!date) return null
+          // 如果已经是 YYYY-MM-DD 格式，直接返回
+          if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            return date
+          }
+          // 否则转换为 YYYY-MM-DD 格式
+          const d = new Date(date)
+          return d.toISOString().split('T')[0]
+        }
+        
+        await dataApi.createSettlementPeriod({
+          start_date: formatDate(period.startDate),
+          end_date: formatDate(period.endDate),
+          assessment_date: formatDate(period.assessmentDate),
+          payment_date: formatDate(period.paymentDate)
+        })
+      }
+    }
     
     // 查找是否已存在该项目的配置
     const existingIndex = approvalConfigs.value.findIndex(c => c.project_id === currentProject.value?.id)
@@ -4411,18 +4470,22 @@ const saveApprovalConfig = async () => {
     if (existingIndex !== -1) {
       // 更新现有配置
       approvalConfigs.value[existingIndex] = {
-        ...approvalConfig.value,
-        project_id: currentProject.value?.id || 0
+        project_id: currentProject.value?.id || 0,
+        amount: approvalConfigForm.amount,
+        grossMargin: approvalConfigForm.grossMargin,
+        settlementPeriods: [...approvalConfigForm.settlementPeriods]
       }
     } else {
       // 添加新配置
       approvalConfigs.value.push({
-        ...approvalConfig.value,
-        project_id: currentProject.value?.id || 0
+        project_id: currentProject.value?.id || 0,
+        amount: approvalConfigForm.amount,
+        grossMargin: approvalConfigForm.grossMargin,
+        settlementPeriods: [...approvalConfigForm.settlementPeriods]
       })
     }
     
-    console.log('保存立项配置:', approvalConfig.value)
+    console.log('保存立项配置:', approvalConfigForm)
     
     // 更新当前项目的立项金额和毛利率
     if (currentProject.value) {
@@ -4430,8 +4493,8 @@ const saveApprovalConfig = async () => {
       if (projectIndex !== -1) {
         projectList.value[projectIndex] = {
           ...projectList.value[projectIndex],
-          approvalAmount: approvalConfig.value.amount,
-          grossMargin: approvalConfig.value.grossMargin
+          approvalAmount: approvalConfigForm.amount,
+          grossMargin: approvalConfigForm.grossMargin
         }
         currentProject.value = projectList.value[projectIndex]
       }
@@ -4798,7 +4861,7 @@ const savePerson = async () => {
       settlement_level: personForm.settlementLevel,
       price_with_tax: personForm.priceWithTax,
       price_without_tax: personForm.priceWithoutTax,
-      input_type: personForm.inputType,
+      input_type: personForm.inputType === '实际' ? 'actual' : 'virtual',
       project_id: currentProject.value?.id
     }
     
@@ -5665,20 +5728,44 @@ const orderSettlement = computed(() => {
   const contractEnd = new Date(contractEndStrFull)
   const totalWorkDays = calculateWorkDaysInRange(contractStart, contractEnd)
   if (totalWorkDays === 0) return 0
+  
   const now = new Date()
   const currentYear = now.getFullYear()
   const currentMonth = now.getMonth() + 1
   const currentQuarter = Math.ceil(currentMonth / 3)
-  const quartersCompleted = currentQuarter - 1
-  if (quartersCompleted === 0) return 0
+  
+  // 计算从项目开始到当前时间应该结算的工作日
   let settlementWorkDays = 0
-  for (let q = 1; q <= quartersCompleted; q++) {
-    const startMonth = (q - 1) * 3 + 1
-    const endMonth = q * 3
-    const periodStart = new Date(currentYear, startMonth - 1, 1)
-    const periodEnd = new Date(currentYear, endMonth, 0)
-    settlementWorkDays += calculateWorkDaysInRange(periodStart, periodEnd)
+  const projectStartYear = contractStart.getFullYear()
+  const projectStartMonth = contractStart.getMonth() + 1
+  const projectStartQuarter = Math.ceil(projectStartMonth / 3)
+  
+  // 遍历从项目开始到当前的所有季度
+  let year = projectStartYear
+  let quarter = projectStartQuarter
+  
+  while (year < currentYear || (year === currentYear && quarter < currentQuarter)) {
+    const startMonth = (quarter - 1) * 3 + 1
+    const endMonth = quarter * 3
+    const periodStart = new Date(year, startMonth - 1, 1)
+    const periodEnd = new Date(year, endMonth, 0)
+    
+    // 计算该季度的工作日，但不能超过项目结束日期
+    const actualStart = periodStart < contractStart ? contractStart : periodStart
+    const actualEnd = periodEnd > contractEnd ? contractEnd : periodEnd
+    
+    if (actualStart <= actualEnd) {
+      settlementWorkDays += calculateWorkDaysInRange(actualStart, actualEnd)
+    }
+    
+    // 进入下一个季度
+    quarter++
+    if (quarter > 4) {
+      quarter = 1
+      year++
+    }
   }
+  
   return (totalOrderAmount / totalWorkDays) * settlementWorkDays
 })
 

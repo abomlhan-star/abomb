@@ -201,8 +201,8 @@ router.post('/persons', async (req: AuthRequest, res: Response): Promise<void> =
         position,
         settlement_dept,
         contact,
-        entry_date,
-        exit_date,
+        entry_date || null,
+        exit_date || null,
         settlement_level,
         price_with_tax || 0,
         price_without_tax || 0,
@@ -269,8 +269,8 @@ router.put('/persons/:id', async (req: AuthRequest, res: Response): Promise<void
         position,
         settlement_dept,
         contact,
-        entry_date,
-        exit_date,
+        entry_date || null,
+        exit_date || null,
         settlement_level,
         price_with_tax,
         price_without_tax,
@@ -805,7 +805,7 @@ router.post('/settlement-periods', async (req: AuthRequest, res: Response): Prom
     const [result] = await pool.execute(
       `INSERT INTO settlement_periods (project_id, start_date, end_date, assessment_date, payment_date)
        VALUES (?, ?, ?, ?, ?)`,
-      [projectId, start_date, end_date, assessment_date, payment_date]
+      [projectId, start_date || null, end_date || null, assessment_date || null, payment_date || null]
     )
 
     res.status(201).json({
