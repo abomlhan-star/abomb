@@ -178,11 +178,11 @@
         </div>
         <div class="bg-card-light dark:bg-card-dark p-5 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800">
           <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">立项金额</p>
-          <h3 class="text-lg font-bold text-red-500">¥{{ approvalConfig.amount || '0.00' }}</h3>
+          <h3 class="text-lg font-bold text-red-500">¥{{ approvalConfig.amount || '' }}</h3>
         </div>
         <div class="bg-card-light dark:bg-card-dark p-5 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800">
           <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">立项毛利率</p>
-          <h3 class="text-lg font-bold">{{ approvalConfig.grossMargin || '0.00' }}%</h3>
+          <h3 class="text-lg font-bold">{{ approvalConfig.grossMargin || '' }}%</h3>
         </div>
       </div>
 
@@ -3627,8 +3627,8 @@ const loadProjects = async () => {
         amount: p.amount ? p.amount.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) : '0.00',
         contractPeriod: p.contract_period || '',
         customer: p.customer || '',
-        approvalAmount: p.approval_amount ? p.approval_amount.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) : '0.00',
-        grossMargin: p.gross_margin || '0.00',
+        approvalAmount: p.approval_amount != null ? p.approval_amount.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) : '',
+        grossMargin: p.gross_margin != null ? p.gross_margin : '',
         group_id: p.group_id || '',
         customer_id: p.customer_id || ''
       }))
@@ -3767,6 +3767,44 @@ const loadFinancialData = async () => {
         amount: order.amount,
         attachment: order.attachment
       }))
+    }
+    
+    // 加载结算等级配置
+    const settlementLevelsData = await dataApi.getSettlementLevels()
+    if (settlementLevelsData && Array.isArray(settlementLevelsData)) {
+      settlementLevels.value = settlementLevelsData.map((level: any) => ({
+        id: level.id,
+        project_id: level.project_id,
+        name: level.name,
+        priceWithTax: level.price_with_tax,
+        priceWithoutTax: level.price_without_tax
+      }))
+    }
+    
+    // 加载立项配置
+    try {
+      const approvalConfigData = await dataApi.getApprovalConfig()
+      if (approvalConfigData) {
+        // 检查是否已存在该项目的配置
+        const existingIndex = approvalConfigs.value.findIndex(c => c.project_id === currentProject.value?.id)
+        if (existingIndex !== -1) {
+          approvalConfigs.value[existingIndex] = {
+            project_id: approvalConfigData.project_id,
+            amount: approvalConfigData.amount,
+            grossMargin: approvalConfigData.gross_margin,
+            settlementPeriods: approvalConfigData.settlement_periods || []
+          }
+        } else {
+          approvalConfigs.value.push({
+            project_id: approvalConfigData.project_id,
+            amount: approvalConfigData.amount,
+            grossMargin: approvalConfigData.gross_margin,
+            settlementPeriods: approvalConfigData.settlement_periods || []
+          })
+        }
+      }
+    } catch (error) {
+      console.log('加载立项配置失败或不存在:', error)
     }
   } catch (error) {
     console.error('加载财务数据失败:', error)
@@ -3954,8 +3992,8 @@ const createProject = async () => {
       customer: customerName,
       group_id: newProject.group_id || null,
       customer_id: newProject.customer_id || null,
-      approval_amount: parseFloat(newProject.amount) || 0,
-      gross_margin: 0
+      approval_amount: null,
+      gross_margin: null
     })
     
     // 添加到项目列表
@@ -3979,6 +4017,29 @@ const createProject = async () => {
     
     // 自动选择新创建的项目
     currentProject.value = newProjectData
+    
+    // 为当前用户添加管理权限
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      const user = JSON.parse(userStr)
+      // 直接使用 localStorage 中保存的用户 ID
+      if (user.id) {
+        try {
+          await projectApi.addPermission(createdProject.id, {
+            user_id: user.id,
+            permission: 'manage'
+          })
+          console.log('为当前用户添加管理权限成功')
+        } catch (error) {
+          console.error('添加权限失败:', error)
+        }
+      } else {
+        console.warn('用户信息中没有ID，无法添加权限')
+      }
+    }
+    
+    // 加载项目权限
+    await loadProjectPermissions()
     
     // 重置表单
     Object.assign(newProject, {
@@ -4222,24 +4283,74 @@ const removeSettlementLevel = (index: number) => {
   }
 }
 
-const saveSettlementConfig = () => {
-  // 只更新当前项目的人员单价
-  persons.value.forEach((person: any) => {
-    if (person.project_id !== currentProject.value?.id) {
+const saveSettlementConfig = async () => {
+  try {
+    // 验证是否有结算等级配置
+    if (filteredSettlementLevels.value.length === 0) {
+      ElMessage.warning('请先添加结算等级配置')
       return
     }
-    if (person.settlementLevel) {
-      const levelConfig = filteredSettlementLevels.value.find(level => level.name === person.settlementLevel)
-      if (levelConfig) {
-        person.priceWithTax = levelConfig.priceWithTax
-        person.priceWithoutTax = levelConfig.priceWithoutTax
+    
+    // 验证结算等级配置是否完整
+    for (const level of filteredSettlementLevels.value) {
+      if (!level.name) {
+        ElMessage.warning('请填写结算等级名称')
+        return
       }
     }
-  })
-  
-  console.log('保存结算配置:', filteredSettlementLevels.value)
-  ElMessage.success('结算配置保存成功，人员单价已更新')
-  showSettlementConfigDialog.value = false
+    
+    // 保存结算等级配置到后端
+    for (const level of filteredSettlementLevels.value) {
+      const levelData = {
+        name: level.name,
+        price_with_tax: Number(level.priceWithTax) || 0,
+        price_without_tax: Number(level.priceWithoutTax) || 0,
+        project_id: currentProject.value?.id
+      }
+      
+      console.log('准备保存结算等级:', level.id ? '更新' : '创建', levelData)
+      
+      if (level.id) {
+        // 更新现有配置
+        await dataApi.updateSettlementLevel(level.id, levelData)
+      } else {
+        // 创建新配置
+        const result = await dataApi.createSettlementLevel(levelData)
+        console.log('创建结算等级结果:', result)
+        // 更新本地数据的 ID
+        if (result && result.id) {
+          const index = settlementLevels.value.findIndex(l => 
+            l.name === level.name && l.project_id === level.project_id && !l.id
+          )
+          if (index !== -1) {
+            settlementLevels.value[index].id = result.id
+          }
+        }
+      }
+    }
+    
+    // 更新当前项目的人员单价
+    persons.value.forEach((person: any) => {
+      if (person.project_id !== currentProject.value?.id) {
+        return
+      }
+      if (person.settlementLevel) {
+        const levelConfig = filteredSettlementLevels.value.find(level => level.name === person.settlementLevel)
+        if (levelConfig) {
+          person.priceWithTax = levelConfig.priceWithTax
+          person.priceWithoutTax = levelConfig.priceWithoutTax
+        }
+      }
+    })
+    
+    console.log('保存结算配置:', filteredSettlementLevels.value)
+    ElMessage.success('结算配置保存成功，人员单价已更新')
+    showSettlementConfigDialog.value = false
+  } catch (error: any) {
+    console.error('保存结算配置失败:', error)
+    const errorMessage = error?.message || error?.error || '保存失败，请重试'
+    ElMessage.error(`保存结算配置失败: ${errorMessage}`)
+  }
 }
 
 const addSettlementPeriod = () => {
@@ -4284,41 +4395,54 @@ const removeSettlementPeriod = (index: number) => {
   }
 }
 
-const saveApprovalConfig = () => {
-  // 查找是否已存在该项目的配置
-  const existingIndex = approvalConfigs.value.findIndex(c => c.project_id === currentProject.value?.id)
-  
-  if (existingIndex !== -1) {
-    // 更新现有配置
-    approvalConfigs.value[existingIndex] = {
-      ...approvalConfig.value,
-      project_id: currentProject.value?.id || 0
-    }
-  } else {
-    // 添加新配置
-    approvalConfigs.value.push({
-      ...approvalConfig.value,
-      project_id: currentProject.value?.id || 0
+const saveApprovalConfig = async () => {
+  try {
+    // 保存立项配置到后端
+    await dataApi.saveApprovalConfig({
+      project_id: currentProject.value?.id,
+      amount: approvalConfig.value.amount,
+      gross_margin: approvalConfig.value.grossMargin,
+      settlement_periods: approvalConfig.value.settlementPeriods
     })
-  }
-  
-  console.log('保存立项配置:', approvalConfig.value)
-  
-  // 更新当前项目的立项金额和毛利率
-  if (currentProject.value) {
-    const projectIndex = projectList.value.findIndex(p => p.id === currentProject.value?.id)
-    if (projectIndex !== -1) {
-      projectList.value[projectIndex] = {
-        ...projectList.value[projectIndex],
-        approvalAmount: approvalConfig.value.amount,
-        grossMargin: approvalConfig.value.grossMargin
+    
+    // 查找是否已存在该项目的配置
+    const existingIndex = approvalConfigs.value.findIndex(c => c.project_id === currentProject.value?.id)
+    
+    if (existingIndex !== -1) {
+      // 更新现有配置
+      approvalConfigs.value[existingIndex] = {
+        ...approvalConfig.value,
+        project_id: currentProject.value?.id || 0
       }
-      currentProject.value = projectList.value[projectIndex]
+    } else {
+      // 添加新配置
+      approvalConfigs.value.push({
+        ...approvalConfig.value,
+        project_id: currentProject.value?.id || 0
+      })
     }
+    
+    console.log('保存立项配置:', approvalConfig.value)
+    
+    // 更新当前项目的立项金额和毛利率
+    if (currentProject.value) {
+      const projectIndex = projectList.value.findIndex(p => p.id === currentProject.value?.id)
+      if (projectIndex !== -1) {
+        projectList.value[projectIndex] = {
+          ...projectList.value[projectIndex],
+          approvalAmount: approvalConfig.value.amount,
+          grossMargin: approvalConfig.value.grossMargin
+        }
+        currentProject.value = projectList.value[projectIndex]
+      }
+    }
+    
+    ElMessage.success('立项配置保存成功')
+    showApprovalConfigDialog.value = false
+  } catch (error) {
+    console.error('保存立项配置失败:', error)
+    ElMessage.error('保存立项配置失败')
   }
-  
-  ElMessage.success('立项配置保存成功')
-  showApprovalConfigDialog.value = false
 }
 
 // 项目重要事项方法
@@ -4674,7 +4798,8 @@ const savePerson = async () => {
       settlement_level: personForm.settlementLevel,
       price_with_tax: personForm.priceWithTax,
       price_without_tax: personForm.priceWithoutTax,
-      input_type: personForm.inputType
+      input_type: personForm.inputType,
+      project_id: currentProject.value?.id
     }
     
     if (isEditingPerson.value && currentPersonIndex.value !== -1) {
@@ -4716,9 +4841,10 @@ const savePerson = async () => {
     showAddPersonDialog.value = false
     isEditingPerson.value = false
     currentPersonIndex.value = -1
-  } catch (error) {
+  } catch (error: any) {
     console.error('保存人员失败:', error)
-    ElMessage.error('保存失败，请重试')
+    const errorMessage = error?.message || error?.error || '保存失败，请重试'
+    ElMessage.error(`保存失败: ${errorMessage}`)
   }
 }
 

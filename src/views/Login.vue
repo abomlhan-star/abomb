@@ -136,6 +136,7 @@ const handleLogin = async () => {
     expireTime.setDate(expireTime.getDate() + 7)
     localStorage.setItem('tokenExpireTime', expireTime.getTime().toString())
     localStorage.setItem('user', JSON.stringify({ 
+      id: response.user?.id,
       username: loginForm.username,
       name: response.user?.name || loginForm.username,
       email: response.user?.email || 'admin@chengyan.com',

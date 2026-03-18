@@ -422,8 +422,10 @@ router.delete('/orders/:id', async (req: AuthRequest, res: Response): Promise<vo
 
 router.get('/settlement-levels', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const projectId = getProjectId(req)
     const [rows] = await pool.execute(
-      'SELECT * FROM settlement_levels ORDER BY price_with_tax DESC'
+      'SELECT * FROM settlement_levels WHERE project_id = ? ORDER BY price_with_tax DESC',
+      [projectId]
     )
     res.json(rows)
   } catch (error) {
@@ -434,37 +436,60 @@ router.get('/settlement-levels', async (req: AuthRequest, res: Response): Promis
 
 router.post('/settlement-levels', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const projectId = getProjectId(req)
     const { name, price_with_tax, price_without_tax } = req.body
 
+    console.log('创建结算等级:', { projectId, name, price_with_tax, price_without_tax, projectIdType: typeof projectId })
+
+    if (!projectId) {
+      res.status(400).json({ error: 'Invalid project ID' })
+      return
+    }
+
+    if (!name) {
+      res.status(400).json({ error: 'Name is required' })
+      return
+    }
+
+    // 检查项目是否存在
+    const [projectRows] = await pool.execute('SELECT id FROM projects WHERE id = ?', [projectId])
+    if (!projectRows || (projectRows as any[]).length === 0) {
+      res.status(400).json({ error: 'Project not found' })
+      return
+    }
+
     const [result] = await pool.execute(
-      `INSERT INTO settlement_levels (name, price_with_tax, price_without_tax)
-       VALUES (?, ?, ?)`,
-      [name, price_with_tax || 0, price_without_tax || 0]
+      `INSERT INTO settlement_levels (project_id, name, price_with_tax, price_without_tax)
+       VALUES (?, ?, ?, ?)`,
+      [projectId, name, price_with_tax || 0, price_without_tax || 0]
     )
 
     res.status(201).json({
       id: (result as any).insertId,
+      project_id: projectId,
       name,
       price_with_tax,
       price_without_tax
     })
-  } catch (error) {
-    console.error('Create settlement level error:', error)
-    res.status(500).json({ error: 'Failed to create settlement level' })
+  } catch (error: any) {
+    console.error('创建结算等级详细错误:', error)
+    console.error('错误堆栈:', error.stack)
+    res.status(500).json({ error: `Failed to create settlement level: ${error.message}` })
   }
 })
 
 router.put('/settlement-levels/:id', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const projectId = getProjectId(req)
     const { id } = req.params
     const { name, price_with_tax, price_without_tax } = req.body
 
     await pool.execute(
-      `UPDATE settlement_levels SET name = ?, price_with_tax = ?, price_without_tax = ? WHERE id = ?`,
-      [name, price_with_tax, price_without_tax, id]
+      `UPDATE settlement_levels SET name = ?, price_with_tax = ?, price_without_tax = ? WHERE id = ? AND project_id = ?`,
+      [name, price_with_tax, price_without_tax, id, projectId]
     )
 
-    res.json({ id, name, price_with_tax, price_without_tax })
+    res.json({ id, project_id: projectId, name, price_with_tax, price_without_tax })
   } catch (error) {
     console.error('Update settlement level error:', error)
     res.status(500).json({ error: 'Failed to update settlement level' })

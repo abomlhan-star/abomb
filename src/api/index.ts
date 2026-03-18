@@ -58,8 +58,20 @@ class ApiService {
         window.location.href = '/login'
         throw new Error('Unauthorized')
       }
-      const error = await response.json().catch(() => ({ error: 'Unknown error' }))
-      throw new Error(error.error || `HTTP error! status: ${response.status}`)
+      let errorMessage = `HTTP error! status: ${response.status}`
+      try {
+        const error = await response.json()
+        if (error && error.error) {
+          errorMessage = error.error
+        } else if (error && error.message) {
+          errorMessage = error.message
+        } else if (error && error.msg) {
+          errorMessage = error.msg
+        }
+      } catch (e) {
+        // 如果解析失败，使用默认错误消息
+      }
+      throw new Error(errorMessage)
     }
 
     return response.json()

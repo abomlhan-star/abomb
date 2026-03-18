@@ -86,11 +86,14 @@ const migrations = [
 
       CREATE TABLE IF NOT EXISTS settlement_levels (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE,
+        project_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
         price_with_tax REAL DEFAULT 0,
         price_without_tax REAL DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+        UNIQUE (project_id, name)
       );
 
       CREATE TABLE IF NOT EXISTS monthly_costs (

@@ -99,12 +99,15 @@ const migrations = [
 
       CREATE TABLE IF NOT EXISTS settlement_levels (
         id INT AUTO_INCREMENT PRIMARY KEY,
+        project_id INT NOT NULL,
         name VARCHAR(50) NOT NULL,
         price_with_tax DECIMAL(10, 2) DEFAULT 0,
         price_without_tax DECIMAL(10, 2) DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        UNIQUE INDEX idx_name (name)
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+        INDEX idx_project (project_id),
+        UNIQUE INDEX idx_project_name (project_id, name)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
       CREATE TABLE IF NOT EXISTS monthly_costs (
@@ -277,6 +280,18 @@ const migrations = [
       ALTER TABLE projects ADD FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
       ALTER TABLE projects ADD INDEX idx_group (group_id);
       ALTER TABLE projects ADD INDEX idx_customer_id (customer_id);
+    `
+  },
+  {
+    version: '1.0.6',
+    description: 'Add project_id to settlement_levels table',
+    sql: `
+      ALTER TABLE settlement_levels
+      ADD COLUMN project_id INT NOT NULL DEFAULT 1 AFTER id,
+      ADD FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+      ADD INDEX idx_project (project_id),
+      DROP INDEX idx_name,
+      ADD UNIQUE INDEX idx_project_name (project_id, name);
     `
   }
 ]
