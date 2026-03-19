@@ -662,6 +662,32 @@ router.post('/actual-settlements', async (req: AuthRequest, res: Response): Prom
   }
 })
 
+router.put('/actual-settlements/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params
+    const projectId = getProjectId(req)
+    const { period_start, period_end, dept, amount_with_tax, amount_without_tax } = req.body
+
+    await pool.execute(
+      `UPDATE actual_settlements SET period_start = ?, period_end = ?, dept = ?, amount_with_tax = ?, amount_without_tax = ? WHERE id = ? AND project_id = ?`,
+      [period_start, period_end, dept, amount_with_tax || 0, amount_without_tax || 0, id, projectId]
+    )
+
+    res.json({ 
+      id, 
+      project_id: projectId, 
+      period_start, 
+      period_end, 
+      dept, 
+      amount_with_tax, 
+      amount_without_tax 
+    })
+  } catch (error) {
+    console.error('Update actual settlement error:', error)
+    res.status(500).json({ error: 'Failed to update actual settlement' })
+  }
+})
+
 router.delete('/actual-settlements/:id', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params
@@ -740,6 +766,61 @@ router.post('/purchases', async (req: AuthRequest, res: Response): Promise<void>
   } catch (error) {
     console.error('Create purchase error:', error)
     res.status(500).json({ error: 'Failed to create purchase' })
+  }
+})
+
+router.put('/purchases/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params
+    const projectId = getProjectId(req)
+    const {
+      matter,
+      item,
+      quantity,
+      unit_price,
+      total_price,
+      settlement_ratio,
+      purchase_dept,
+      purchase_time,
+      settlement_month,
+      executor
+    } = req.body
+
+    await pool.execute(
+      `UPDATE project_purchases SET matter = ?, item = ?, quantity = ?, unit_price = ?, total_price = ?, settlement_ratio = ?, purchase_dept = ?, purchase_time = ?, settlement_month = ?, executor = ? WHERE id = ? AND project_id = ?`,
+      [
+        matter,
+        item,
+        quantity || 1,
+        unit_price || 0,
+        total_price || 0,
+        settlement_ratio || 1,
+        purchase_dept,
+        purchase_time,
+        settlement_month,
+        executor,
+        id,
+        projectId
+      ]
+    )
+
+    res.json({
+      id,
+      project_id: projectId,
+      matter,
+      item,
+      quantity,
+      unit_price,
+      total_price,
+      settlement_ratio,
+      purchase_dept,
+      purchase_time,
+      settlement_month,
+      executor
+    })
+  } catch (error) {
+    console.error('Update purchase error:', error)
+    res.status(500).json({ error: 'Failed to update purchase' })
   }
 })
 

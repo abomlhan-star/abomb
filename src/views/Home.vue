@@ -577,10 +577,10 @@
             >
               <template #default="{ row }">
                 <span :class="{
-                  'text-green-500 dark:text-green-400': row.inputType === '实际',
-                  'text-gray-500 dark:text-gray-400': row.inputType === '虚拟'
+                  'text-green-500 dark:text-green-400': row.inputType === 'actual' || row.inputType === '实际',
+                  'text-gray-500 dark:text-gray-400': row.inputType === 'virtual' || row.inputType === '虚拟'
                 }">
-                  {{ row.inputType }}
+                  {{ row.inputType === 'actual' ? '真实' : row.inputType === 'virtual' ? '虚拟' : row.inputType }}
                 </span>
               </template>
             </el-table-column>
@@ -590,17 +590,19 @@
               width="90"
             />
             <el-table-column
-              prop="entryDate"
               label="入场日期"
               width="100"
-            />
+            >
+              <template #default="{ row }">
+                <span>{{ formatDate(row.entryDate) }}</span>
+              </template>
+            </el-table-column>
             <el-table-column
-              prop="exitDate"
               label="离场日期"
               width="100"
             >
               <template #default="{ row }">
-                <span>{{ row.exitDate || '未离场' }}</span>
+                <span>{{ row.exitDate ? formatDate(row.exitDate) : '未离场' }}</span>
               </template>
             </el-table-column>
             <el-table-column
@@ -1489,6 +1491,35 @@
           >
             确认导入
           </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 导入进度对话框 -->
+    <div v-if="showImportProgressDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div class="bg-white dark:bg-card-dark rounded-lg shadow-xl w-full max-w-md p-6">
+        <h3 class="text-lg font-semibold mb-4">导入进度</h3>
+        <div class="space-y-4">
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-sm font-medium text-slate-700 dark:text-slate-300">导入进度</span>
+              <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ importProgress }}%</span>
+            </div>
+            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+              <div 
+                class="bg-primary h-2 rounded-full transition-all duration-300 ease-in-out"
+                :style="{ width: importProgress + '%' }"
+              ></div>
+            </div>
+          </div>
+          <div class="text-center">
+            <p class="text-sm text-slate-600 dark:text-slate-400">
+              正在导入人员数据，请勿关闭此窗口
+            </p>
+            <p class="text-sm font-medium text-slate-700 dark:text-slate-300 mt-2">
+              已导入: {{ importedCount }} / {{ totalCount }}
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -2492,6 +2523,10 @@ const selectedDept = ref('')
 
 // Excel导入相关
 const showExcelImportDialog = ref(false)
+const showImportProgressDialog = ref(false)
+const importProgress = ref(0)
+const importedCount = ref(0)
+const totalCount = ref(0)
 const excelFileName = ref('')
 const excelPreviewData = ref<Array<any>>([])
 const duplicatePersonNames = ref<string[]>([])
@@ -2624,9 +2659,17 @@ const confirmExcelImport = async () => {
     return
   }
   
+  // 打开进度弹窗
+  showImportProgressDialog.value = true
+  // 初始化进度变量
+  totalCount.value = excelPreviewData.value.length
+  importedCount.value = 0
+  importProgress.value = 0
+  
   let importCount = 0
   try {
-    for (const person of excelPreviewData.value) {
+    for (let i = 0; i < excelPreviewData.value.length; i++) {
+      const person = excelPreviewData.value[i]
       // 准备后端API需要的数据格式
       const personData = {
         name: person.name,
@@ -2653,12 +2696,23 @@ const confirmExcelImport = async () => {
         project_id: currentProjectId
       })
       importCount++
+      
+      // 更新进度
+      importedCount.value = importCount
+      importProgress.value = Math.round((importCount / totalCount.value) * 100)
+      
+      // 为了更好的视觉效果，添加一个小延迟
+      await new Promise(resolve => setTimeout(resolve, 50))
     }
     
+    // 关闭进度弹窗
+    showImportProgressDialog.value = false
     ElMessage.success(`成功导入${importCount}条人员数据`)
     cancelExcelImport()
   } catch (error) {
     console.error('导入人员数据失败:', error)
+    // 关闭进度弹窗
+    showImportProgressDialog.value = false
     ElMessage.error('导入失败，请重试')
   }
 }
@@ -2706,12 +2760,18 @@ const filteredMonthlyCostList = computed(() => {
 
 const totalMonthlyCost = computed(() => {
   return filteredMonthlyCostList.value.reduce((sum, item) => {
-    return sum + (item.directCost || 0) + (item.operatingCost || 0) + (item.sharedCost || 0)
+    const directCost = parseFloat(item.directCost) || 0
+    const operatingCost = parseFloat(item.operatingCost) || 0
+    const sharedCost = parseFloat(item.sharedCost) || 0
+    return sum + directCost + operatingCost + sharedCost
   }, 0)
 })
 
 const getMonthlyCostTotal = (row: any) => {
-  return (row.directCost || 0) + (row.operatingCost || 0) + (row.sharedCost || 0)
+  const directCost = parseFloat(row.directCost) || 0
+  const operatingCost = parseFloat(row.operatingCost) || 0
+  const sharedCost = parseFloat(row.sharedCost) || 0
+  return directCost + operatingCost + sharedCost
 }
 
 const openAddMonthlyCost = () => {
@@ -2791,7 +2851,11 @@ const deleteMonthlyCost = async (index: number) => {
       if (costToDelete.id) {
         await dataApi.deleteMonthlyCost(costToDelete.id)
       }
-      monthlyCostList.value.splice(index, 1)
+      // 在原始列表中找到正确的索引并删除
+      const originalIndex = monthlyCostList.value.findIndex(c => c.id === costToDelete.id)
+      if (originalIndex !== -1) {
+        monthlyCostList.value.splice(originalIndex, 1)
+      }
       ElMessage.success('删除成功')
     }
   } catch (error) {
@@ -2840,11 +2904,17 @@ const filteredActualSettlementList = computed(() => {
 })
 
 const totalActualSettlementWithTax = computed(() => {
-  return filteredActualSettlementList.value.reduce((sum, item) => sum + (item.amountWithTax || 0), 0)
+  return filteredActualSettlementList.value.reduce((sum, item) => {
+    const amount = parseFloat(item.amountWithTax) || 0
+    return sum + amount
+  }, 0)
 })
 
 const totalActualSettlementWithoutTax = computed(() => {
-  return filteredActualSettlementList.value.reduce((sum, item) => sum + (item.amountWithoutTax || 0), 0)
+  return filteredActualSettlementList.value.reduce((sum, item) => {
+    const amount = parseFloat(item.amountWithoutTax) || 0
+    return sum + amount
+  }, 0)
 })
 
 const openAddActualSettlement = () => {
@@ -2888,18 +2958,31 @@ const saveActualSettlement = async () => {
     }
 
     // 调用后端API
-    await dataApi.createActualSettlement(actualSettlementData)
-
     if (isEditingActualSettlement.value) {
-      actualSettlementList.value[currentActualSettlementIndex.value] = { 
-        ...actualSettlementForm,
-        project_id: currentProject.value?.id || 0
+      // 获取当前编辑的结算记录
+      const currentSettlement = filteredActualSettlementList.value[currentActualSettlementIndex.value]
+      if (currentSettlement && currentSettlement.id) {
+        // 调用更新API
+        await dataApi.updateActualSettlement(currentSettlement.id, actualSettlementData)
+        // 更新本地数据 - 找到原始列表中的索引
+        const originalIndex = actualSettlementList.value.findIndex(s => s.id === currentSettlement.id)
+        if (originalIndex !== -1) {
+          actualSettlementList.value[originalIndex] = { 
+            ...actualSettlementForm,
+            project_id: currentProject.value?.id || 0,
+            id: currentSettlement.id
+          }
+          ElMessage.success('修改成功')
+        }
       }
-      ElMessage.success('修改成功')
     } else {
+      // 调用创建API
+      const result = await dataApi.createActualSettlement(actualSettlementData)
+      // 添加到本地数组
       actualSettlementList.value.push({ 
         ...actualSettlementForm,
-        project_id: currentProject.value?.id || 0
+        project_id: currentProject.value?.id || 0,
+        id: result.id
       })
       ElMessage.success('添加成功')
     }
@@ -2920,7 +3003,11 @@ const deleteActualSettlement = async (index: number) => {
       if (settlementToDelete.id) {
         await dataApi.deleteActualSettlement(settlementToDelete.id)
       }
-      actualSettlementList.value.splice(index, 1)
+      // 在原始列表中找到正确的索引并删除
+      const originalIndex = actualSettlementList.value.findIndex(s => s.id === settlementToDelete.id)
+      if (originalIndex !== -1) {
+        actualSettlementList.value.splice(originalIndex, 1)
+      }
       ElMessage.success('删除成功')
     }
   } catch (error) {
@@ -2976,7 +3063,9 @@ const projectPurchaseForm = reactive({
 })
 
 const getPurchaseSettlementAmount = (row: any) => {
-  return (row.totalPrice || 0) * (row.settlementRatio || 1)
+  const totalPrice = parseFloat(row.totalPrice) || 0
+  const settlementRatio = parseFloat(row.settlementRatio) || 1
+  return totalPrice * settlementRatio
 }
 
 // 过滤后的项目采购列表
@@ -2999,7 +3088,7 @@ const virtualPersonSettlementAmount = computed(() => {
   virtualPersons.forEach((person: any) => {
     months.value.forEach(m => {
       const workDays = parseFloat(calculateMonthlyWorkDays(person, m))
-      const unitPrice = person.priceWithTax
+      const unitPrice = parseFloat(person.priceWithTax) || 0
       const monthlyAmount = workDays * unitPrice
       totalAmount += monthlyAmount
     })
@@ -3036,7 +3125,8 @@ const editProjectPurchase = (row: any, index: number) => {
   projectPurchaseForm.settlementMonth = row.settlementMonth || ''
   projectPurchaseForm.executor = row.executor || ''
   isEditingProjectPurchase.value = true
-  currentProjectPurchaseIndex.value = index
+  // 使用 row.id 在原始列表中找到正确的索引
+  currentProjectPurchaseIndex.value = projectPurchaseList.value.findIndex(p => p.id === row.id)
   showProjectPurchaseDialog.value = true
 }
 
@@ -3065,18 +3155,24 @@ const saveProjectPurchase = async () => {
       executor: projectPurchaseForm.executor
     }
 
-    // 调用后端API
-    await dataApi.createPurchase(projectPurchaseData)
-
     if (isEditingProjectPurchase.value) {
+      // 编辑模式 - 调用更新API
+      const currentPurchase = projectPurchaseList.value[currentProjectPurchaseIndex.value]
+      if (currentPurchase.id) {
+        await dataApi.updatePurchase(currentPurchase.id, projectPurchaseData)
+      }
       projectPurchaseList.value[currentProjectPurchaseIndex.value] = { 
         ...projectPurchaseForm,
+        id: currentPurchase.id,
         project_id: currentProject.value?.id || 0
       }
       ElMessage.success('修改成功')
     } else {
+      // 新增模式 - 调用创建API
+      const result = await dataApi.createPurchase(projectPurchaseData)
       projectPurchaseList.value.push({ 
         ...projectPurchaseForm,
+        id: result.id,
         project_id: currentProject.value?.id || 0
       })
       ElMessage.success('添加成功')
@@ -3098,7 +3194,11 @@ const deleteProjectPurchase = async (index: number) => {
       if (purchaseToDelete.id) {
         await dataApi.deletePurchase(purchaseToDelete.id)
       }
-      projectPurchaseList.value.splice(index, 1)
+      // 在原始列表中找到正确的索引并删除
+      const originalIndex = projectPurchaseList.value.findIndex(p => p.id === purchaseToDelete.id)
+      if (originalIndex !== -1) {
+        projectPurchaseList.value.splice(originalIndex, 1)
+      }
       ElMessage.success('删除成功')
     }
   } catch (error) {
@@ -3338,7 +3438,13 @@ const loadPersonsFromStorage = () => {
   const saved = localStorage.getItem('project_persons')
   if (saved) {
     try {
-      return JSON.parse(saved)
+      const persons = JSON.parse(saved)
+      // 确保单价字段是数字类型
+      return persons.map((person: any) => ({
+        ...person,
+        priceWithTax: parseFloat(person.priceWithTax) || 0,
+        priceWithoutTax: parseFloat(person.priceWithoutTax) || 0
+      }))
     } catch (e) {
       return null
     }
@@ -3496,7 +3602,6 @@ const approvalConfig = computed(() => {
   if (config) {
     return config
   }
-  // 如果没有配置，返回默认配置
   return {
     project_id: currentProject.value?.id || 0,
     amount: '',
@@ -3722,7 +3827,7 @@ const loadFinancialData = async () => {
     if (monthlyCosts && Array.isArray(monthlyCosts)) {
       monthlyCostList.value = monthlyCosts.map((cost: any) => ({
         id: cost.id,
-        project_id: cost.project_id,
+        project_id: Number(cost.project_id) || 0,
         month: cost.month,
         directCost: cost.direct_cost,
         operatingCost: cost.operating_cost,
@@ -3735,8 +3840,8 @@ const loadFinancialData = async () => {
     if (actualSettlements && Array.isArray(actualSettlements)) {
       actualSettlementList.value = actualSettlements.map((settlement: any) => ({
         id: settlement.id,
-        project_id: settlement.project_id,
-        period: [settlement.period_start, settlement.period_end],
+        project_id: Number(settlement.project_id) || 0,
+        period: [formatDate(settlement.period_start), formatDate(settlement.period_end)],
         dept: settlement.dept,
         amountWithTax: settlement.amount_with_tax,
         amountWithoutTax: settlement.amount_without_tax
@@ -3777,8 +3882,8 @@ const loadFinancialData = async () => {
         entryDate: person.entry_date,
         exitDate: person.exit_date,
         settlementLevel: person.settlement_level,
-        priceWithTax: person.price_with_tax,
-        priceWithoutTax: person.price_without_tax,
+        priceWithTax: parseFloat(person.price_with_tax) || 0,
+        priceWithoutTax: parseFloat(person.price_without_tax) || 0,
         inputType: person.input_type,
         workDays: {}
       }))
@@ -3829,6 +3934,8 @@ const loadFinancialData = async () => {
         priceWithTax: level.price_with_tax,
         priceWithoutTax: level.price_without_tax
       }))
+      // 更新本地存储
+      localStorage.setItem('settlement_levels', JSON.stringify(settlementLevels.value))
     }
     
     // 加载立项配置
@@ -4336,14 +4443,27 @@ const addSettlementLevel = () => {
   })
 }
 
-const removeSettlementLevel = (index: number) => {
+const removeSettlementLevel = async (index: number) => {
   // 找到过滤后的索引对应的实际索引
   const levelToDelete = filteredSettlementLevels.value[index]
   const actualIndex = settlementLevels.value.findIndex(l => 
     l.name === levelToDelete.name && l.project_id === levelToDelete.project_id
   )
   if (actualIndex !== -1) {
-    settlementLevels.value.splice(actualIndex, 1)
+    try {
+      // 如果有ID，调用后端API删除
+      if (levelToDelete.id) {
+        await dataApi.deleteSettlementLevel(levelToDelete.id)
+      }
+      // 从本地数组中删除
+      settlementLevels.value.splice(actualIndex, 1)
+      // 更新本地存储
+      localStorage.setItem('settlement_levels', JSON.stringify(settlementLevels.value))
+      ElMessage.success('结算等级删除成功')
+    } catch (error) {
+      console.error('删除结算等级失败:', error)
+      ElMessage.error('删除失败，请重试')
+    }
   }
 }
 
@@ -4378,16 +4498,62 @@ const saveSettlementConfig = async () => {
         // 更新现有配置
         await dataApi.updateSettlementLevel(level.id, levelData)
       } else {
-        // 创建新配置
-        const result = await dataApi.createSettlementLevel(levelData)
-        console.log('创建结算等级结果:', result)
-        // 更新本地数据的 ID
-        if (result && result.id) {
-          const index = settlementLevels.value.findIndex(l => 
-            l.name === level.name && l.project_id === level.project_id && !l.id
-          )
+        // 检查是否已经存在相同名称的等级
+        const existingLevel = settlementLevels.value.find(l => 
+          l.name === level.name && 
+          l.project_id === level.project_id && 
+          l.id
+        )
+        
+        if (existingLevel) {
+          // 更新现有等级
+          await dataApi.updateSettlementLevel(existingLevel.id, levelData)
+          // 更新本地数据
+          const index = settlementLevels.value.findIndex(l => l.id === existingLevel.id)
           if (index !== -1) {
-            settlementLevels.value[index].id = result.id
+            settlementLevels.value[index] = {
+              ...settlementLevels.value[index],
+              priceWithTax: level.priceWithTax,
+              priceWithoutTax: level.priceWithoutTax
+            }
+          }
+        } else {
+          // 创建新配置
+          try {
+            const result = await dataApi.createSettlementLevel(levelData)
+            console.log('创建结算等级结果:', result)
+            // 更新本地数据的 ID
+            if (result && result.id) {
+              const index = settlementLevels.value.findIndex(l => 
+                l.name === level.name && l.project_id === level.project_id && !l.id
+              )
+              if (index !== -1) {
+                settlementLevels.value[index].id = result.id
+              }
+            }
+          } catch (error: any) {
+            // 如果是重复创建错误，尝试查找并更新现有等级
+            if (error.message && error.message.includes('Duplicate entry')) {
+              console.log('检测到重复创建，尝试更新现有等级')
+              // 重新获取所有结算等级
+              const allLevels = await dataApi.getSettlementLevels()
+              const duplicateLevel = allLevels.find(l => 
+                l.name === level.name && 
+                l.project_id === level.project_id
+              )
+              if (duplicateLevel && duplicateLevel.id) {
+                await dataApi.updateSettlementLevel(duplicateLevel.id, levelData)
+                // 更新本地数据
+                const index = settlementLevels.value.findIndex(l => 
+                  l.name === level.name && l.project_id === level.project_id && !l.id
+                )
+                if (index !== -1) {
+                  settlementLevels.value[index].id = duplicateLevel.id
+                }
+              }
+            } else {
+              throw error
+            }
           }
         }
       }
@@ -4834,7 +5000,8 @@ const editOrder = (order: any) => {
     orderForm.endDate = endDate
   }
   
-  orderForm.orderDate = order.orderDate
+  // 确保订单时间是 YYYY-MM-DD 格式
+  orderForm.orderDate = formatDate(order.orderDate)
   orderForm.amount = order.amount || ''
   orderForm.attachment = order.attachment
   
@@ -4965,6 +5132,17 @@ const deletePerson = async (index: number) => {
   const personToDelete = filteredPersons.value[index]
   if (personToDelete) {
     try {
+      // 显示确认对话框
+      await ElMessageBox.confirm(
+        `确定要删除人员 "${personToDelete.name}" 吗？`,
+        '确认删除',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      )
+      
       // 如果有ID，调用后端API删除
       if (personToDelete.id) {
         await dataApi.deletePerson(personToDelete.id)
@@ -4979,8 +5157,11 @@ const deletePerson = async (index: number) => {
         ElMessage.success('人员删除成功')
       }
     } catch (error) {
-      console.error('删除人员失败:', error)
-      ElMessage.error('删除失败，请重试')
+      // 如果是用户取消操作，不显示错误信息
+      if (error !== 'cancel') {
+        console.error('删除人员失败:', error)
+        ElMessage.error('删除失败，请重试')
+      }
     }
   }
 }
@@ -5307,11 +5488,11 @@ const departmentSettlementDataWithTax = computed(() => {
     
     months.value.forEach(m => {
       const workDays = parseFloat(calculateMonthlyWorkDays(person, m))
-      const unitPrice = person.priceWithTax
+      const unitPrice = parseFloat(person.priceWithTax) || 0
       const monthlyAmount = workDays * unitPrice
       
-      data[dept].levels[level].monthlyAmounts[m.key] = (data[dept].levels[level].monthlyAmounts[m.key] || 0) + monthlyAmount
-      data[dept].monthlyTotals[m.key] = (data[dept].monthlyTotals[m.key] || 0) + monthlyAmount
+      data[dept].levels[level].monthlyAmounts[m.key] = ((data[dept].levels[level].monthlyAmounts[m.key] || 0) + monthlyAmount)
+      data[dept].monthlyTotals[m.key] = ((data[dept].monthlyTotals[m.key] || 0) + monthlyAmount)
       data[dept].levels[level].totalAmount += monthlyAmount
       data[dept].totalAmount += monthlyAmount
     })
@@ -5357,11 +5538,11 @@ const departmentSettlementDataWithoutTax = computed(() => {
     
     months.value.forEach(m => {
       const workDays = parseFloat(calculateMonthlyWorkDays(person, m))
-      const unitPrice = person.priceWithoutTax
+      const unitPrice = parseFloat(person.priceWithoutTax) || 0
       const monthlyAmount = workDays * unitPrice
       
-      data[dept].levels[level].monthlyAmounts[m.key] = (data[dept].levels[level].monthlyAmounts[m.key] || 0) + monthlyAmount
-      data[dept].monthlyTotals[m.key] = (data[dept].monthlyTotals[m.key] || 0) + monthlyAmount
+      data[dept].levels[level].monthlyAmounts[m.key] = ((data[dept].levels[level].monthlyAmounts[m.key] || 0) + monthlyAmount)
+      data[dept].monthlyTotals[m.key] = ((data[dept].monthlyTotals[m.key] || 0) + monthlyAmount)
       data[dept].levels[level].totalAmount += monthlyAmount
       data[dept].totalAmount += monthlyAmount
     })
@@ -5397,8 +5578,11 @@ const monthlyProjectTotals = computed(() => {
 const totalProjectAmount = computed(() => {
   let total = 0
   Object.values(departmentSettlementData.value).forEach((deptData: any) => {
-    total += deptData.totalAmount
+    const deptTotal = parseFloat(deptData.totalAmount) || 0
+    console.log('项目结算金额计算 - 部门:', deptData, '金额:', deptTotal)
+    total += deptTotal
   })
+  console.log('项目结算金额计算 - 总计:', total)
   return total
 })
 
@@ -5494,8 +5678,11 @@ const formatDate = (date: string) => {
 }
 
 // 数字格式化函数
-const formatNumber = (num: number) => {
-  return num.toFixed(2)
+const formatNumber = (num: number | string | undefined | null) => {
+  if (num === null || num === undefined || num === '') return '0.00'
+  const n = typeof num === 'string' ? parseFloat(num) : num
+  if (isNaN(n)) return '0.00'
+  return n.toFixed(2)
 }
 
 // 财务数据分析计算
@@ -5539,7 +5726,10 @@ const currentGrossProfit = computed(() => {
   const periodCost = filteredMonthlyCostList.value
     .filter((item: any) => monthList.includes(item.month))
     .reduce((sum: number, item: any) => {
-      return sum + (item.directCost || 0) + (item.operatingCost || 0) + (item.sharedCost || 0)
+      const directCost = parseFloat(item.directCost) || 0
+      const operatingCost = parseFloat(item.operatingCost) || 0
+      const sharedCost = parseFloat(item.sharedCost) || 0
+      return sum + directCost + operatingCost + sharedCost
     }, 0)
   return periodSettlement - periodCost
 })
@@ -5573,32 +5763,82 @@ const actualGrossProfit = computed(() => {
   if (settlements.length === 0) {
     return 0
   }
-  let totalGrossProfit = 0
+  
+  // 找到最新的结算周期结束日期
+  let latestEndDate = new Date(0)
   settlements.forEach((settlement: any) => {
     if (!settlement.period || settlement.period.length !== 2) return
-    const startDate = new Date(settlement.period[0])
     const endDate = new Date(settlement.period[1])
-    const monthList: string[] = []
-    let currentYear = startDate.getFullYear()
-    let currentMonth = startDate.getMonth() + 1
-    const endYear = endDate.getFullYear()
-    const endMonth = endDate.getMonth() + 1
-    while (currentYear < endYear || (currentYear === endYear && currentMonth <= endMonth)) {
-      monthList.push(`${currentYear}-${String(currentMonth).padStart(2, '0')}`)
-      currentMonth++
-      if (currentMonth > 12) {
-        currentMonth = 1
-        currentYear++
-      }
+    if (endDate > latestEndDate) {
+      latestEndDate = endDate
     }
-    const periodCost = filteredMonthlyCostList.value
-      .filter((item: any) => monthList.includes(item.month))
-      .reduce((sum: number, item: any) => {
-        return sum + (item.directCost || 0) + (item.operatingCost || 0) + (item.sharedCost || 0)
-      }, 0)
-    const periodSettlement = settlement.amountWithoutTax || 0
-    totalGrossProfit += periodSettlement - periodCost
   })
+  
+  // 按周期分组，累加相同周期的实际结算金额
+  const periodMap = new Map<string, { amountWithoutTax: number, monthList: string[], endDate: Date }>()
+  
+  settlements.forEach((settlement: any) => {
+    if (!settlement.period || settlement.period.length !== 2) return
+    const periodKey = `${settlement.period[0]}_${settlement.period[1]}`
+    const amountWithoutTax = parseFloat(settlement.amountWithoutTax) || 0
+    
+    if (periodMap.has(periodKey)) {
+      // 相同周期，累加金额
+      const existing = periodMap.get(periodKey)!
+      existing.amountWithoutTax += amountWithoutTax
+    } else {
+      // 新周期，计算月份列表
+      const startDate = new Date(settlement.period[0])
+      const endDate = new Date(settlement.period[1])
+      const monthList: string[] = []
+      let currentYear = startDate.getFullYear()
+      let currentMonth = startDate.getMonth() + 1
+      const endYear = endDate.getFullYear()
+      const endMonth = endDate.getMonth() + 1
+      while (currentYear < endYear || (currentYear === endYear && currentMonth <= endMonth)) {
+        monthList.push(`${currentYear}-${String(currentMonth).padStart(2, '0')}`)
+        currentMonth++
+        if (currentMonth > 12) {
+          currentMonth = 1
+          currentYear++
+        }
+      }
+      periodMap.set(periodKey, { amountWithoutTax, monthList, endDate })
+    }
+  })
+  
+  // 收集所有涉及的月份（去重）
+  const allMonths = new Set<string>()
+  let totalAmountWithoutTax = 0
+  
+  periodMap.forEach((data) => {
+    // 只计算最新结算周期及之前的周期
+    if (data.endDate <= latestEndDate) {
+      data.monthList.forEach(month => allMonths.add(month))
+      totalAmountWithoutTax += data.amountWithoutTax
+    }
+  })
+  
+  // 计算所有涉及月份的总成本（避免重复计算）
+  const totalPeriodCost = filteredMonthlyCostList.value
+    .filter((item: any) => allMonths.has(item.month))
+    .reduce((sum: number, item: any) => {
+      const directCost = parseFloat(item.directCost) || 0
+      const operatingCost = parseFloat(item.operatingCost) || 0
+      const sharedCost = parseFloat(item.sharedCost) || 0
+      return sum + directCost + operatingCost + sharedCost
+    }, 0)
+  
+  const totalGrossProfit = totalAmountWithoutTax - totalPeriodCost
+  
+  console.log('=== 实际毛利计算详情 ===')
+  console.log('结算周期数量:', periodMap.size)
+  console.log('所有涉及月份（去重）:', Array.from(allMonths).sort())
+  console.log('总不含税金额:', totalAmountWithoutTax)
+  console.log('总周期成本（去重后）:', totalPeriodCost)
+  console.log('实际毛利:', totalGrossProfit)
+  console.log('===================')
+  
   return totalGrossProfit
 })
 
@@ -5625,8 +5865,15 @@ const actualGrossProfitLatestMonth = computed(() => {
 // 实际毛利率
 const actualGrossMarginRate = computed(() => {
   const totalActualSettlement = totalActualSettlementWithoutTax.value
-  if (totalActualSettlement === 0) return 0
-  return (actualGrossProfit.value / totalActualSettlement) * 100
+  console.log('实际毛利率计算 - totalActualSettlement:', totalActualSettlement)
+  console.log('实际毛利率计算 - actualGrossProfit:', actualGrossProfit.value)
+  if (totalActualSettlement === 0) {
+    console.log('实际毛利率计算 - 实际结算金额为0，返回0')
+    return 0
+  }
+  const rate = (actualGrossProfit.value / totalActualSettlement) * 100
+  console.log('实际毛利率计算 - 结果:', rate)
+  return rate
 })
 
 // 滚动毛利率暂估（预估计算到项目结束的整体毛利率）
@@ -5847,10 +6094,18 @@ const grossMarginDifference = computed(() => {
 
 // 项目结算率
 const projectSettlementRate = computed(() => {
-  const approvalAmount = parseFloat(String(currentProject.value?.approvalAmount || '0').replace(/,/g, '')) || 0
+  console.log('结算率计算 - currentProject完整对象:', JSON.stringify(currentProject.value))
+  console.log('结算率计算 - approvalConfig:', approvalConfig.value)
+  
+  // 使用立项配置中的金额，而不是项目中的approvalAmount
+  const approvalAmount = parseFloat(String(approvalConfig.value?.amount || '0').replace(/,/g, '')) || 0
+  console.log('结算率计算 - 立项金额:', approvalAmount)
   if (approvalAmount === 0) return 0
   const totalProjectSettlement = totalProjectAmount.value
-  return (totalProjectSettlement / approvalAmount) * 100
+  console.log('结算率计算 - 项目结算金额:', totalProjectSettlement)
+  const rate = (totalProjectSettlement / approvalAmount) * 100
+  console.log('结算率计算 - 结果:', rate)
+  return rate
 })
 
 // 自由计算函数
@@ -5927,8 +6182,8 @@ const calculateFreeSettlement = () => {
 
     monthList.forEach(m => {
       const workDays = parseFloat(calculateMonthlyWorkDays(person, m))
-      const withTaxAmount = workDays * (person.priceWithTax || 0)
-      const withoutTaxAmount = workDays * (person.priceWithoutTax || 0)
+      const withTaxAmount = workDays * (parseFloat(person.priceWithTax) || 0)
+      const withoutTaxAmount = workDays * (parseFloat(person.priceWithoutTax) || 0)
 
       detailMap[key].withTax += withTaxAmount
       detailMap[key].withoutTax += withoutTaxAmount

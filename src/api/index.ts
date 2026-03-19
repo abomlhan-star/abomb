@@ -217,6 +217,9 @@ export const dataApi = {
   createActualSettlement: (data: any) =>
     api.post<any>('/data/actual-settlements', data),
 
+  updateActualSettlement: (id: number, data: any) =>
+    api.put<any>(`/data/actual-settlements/${id}`, data),
+
   deleteActualSettlement: (id: number) =>
     api.delete(`/data/actual-settlements/${id}`),
 
@@ -225,6 +228,9 @@ export const dataApi = {
 
   createPurchase: (data: any) =>
     api.post<any>('/data/purchases', data),
+
+  updatePurchase: (id: number, data: any) =>
+    api.put<any>(`/data/purchases/${id}`, data),
 
   deletePurchase: (id: number) =>
     api.delete(`/data/purchases/${id}`),
