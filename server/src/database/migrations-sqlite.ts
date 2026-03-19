@@ -78,6 +78,7 @@ const migrations = [
         code TEXT,
         period TEXT,
         order_date TEXT,
+        amount REAL DEFAULT 0,
         attachment TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -183,6 +184,13 @@ const migrations = [
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         UNIQUE(project_id, user_id)
       );
+    `
+  },
+  {
+    version: '1.0.7',
+    description: 'Add amount field to orders table',
+    sql: `
+      ALTER TABLE orders ADD COLUMN amount REAL DEFAULT 0;
     `
   }
 ]

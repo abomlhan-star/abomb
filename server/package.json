@@ -1,6 +1,6 @@
 {
   "name": "cheng-yan-operation-server",
-  "version": "1.0.9beta",
+  "version": "1.1.0beta",
   "description": "成研运营项目管理系统后端服务",
   "main": "dist/index.js",
   "scripts": {

@@ -90,6 +90,7 @@ const migrations = [
         code VARCHAR(100),
         period VARCHAR(100),
         order_date DATE,
+        amount DECIMAL(15, 2) DEFAULT 0,
         attachment VARCHAR(500),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -292,6 +293,13 @@ const migrations = [
       ADD INDEX idx_project (project_id),
       DROP INDEX idx_name,
       ADD UNIQUE INDEX idx_project_name (project_id, name);
+    `
+  },
+  {
+    version: '1.0.7',
+    description: 'Add amount field to orders table',
+    sql: `
+      ALTER TABLE orders ADD COLUMN amount DECIMAL(15, 2) DEFAULT 0 AFTER order_date;
     `
   }
 ]

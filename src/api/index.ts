@@ -184,6 +184,9 @@ export const dataApi = {
   createOrder: (data: any) =>
     api.post<any>('/data/orders', data),
 
+  updateOrder: (id: number, data: any) =>
+    api.put<any>(`/data/orders/${id}`, data),
+
   deleteOrder: (id: number) =>
     api.delete(`/data/orders/${id}`),
 

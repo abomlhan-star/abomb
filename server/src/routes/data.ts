@@ -73,7 +73,7 @@ router.post('/contracts', async (req: AuthRequest, res: Response): Promise<void>
     const [result] = await pool.execute(
       `INSERT INTO contracts (project_id, type, name, code, amount, period, customer, attachment)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [projectId, type || 'main', name, code, amount || 0, period, customer, attachment]
+      [projectId, type || 'main', name, code, amount || 0, period || null, customer || null, attachment || null]
     )
 
     res.status(201).json({
@@ -110,7 +110,7 @@ router.put('/contracts/:id', async (req: AuthRequest, res: Response): Promise<vo
 
     await pool.execute(
       `UPDATE contracts SET type = ?, name = ?, code = ?, amount = ?, period = ?, customer = ?, attachment = ? WHERE id = ?`,
-      [type, name, code, amount, period, customer, attachment, id]
+      [type || 'main', name, code, amount || 0, period || null, customer || null, attachment || null, id]
     )
 
     res.json({ id, type, name, code, amount, period, customer, attachment })
@@ -377,12 +377,24 @@ router.post('/orders', async (req: AuthRequest, res: Response): Promise<void> =>
       return
     }
 
-    const { code, period, order_date, attachment } = req.body
+    // 兼容前端发送的字段名 (start_date, end_date, order_date) 和 后端格式 (startDate, endDate, orderDate)
+    const { code, startDate, endDate, orderDate, amount, attachment, start_date, end_date, order_date } = req.body
+    
+    // 确定使用的日期字段
+    const sDate = startDate || start_date
+    const eDate = endDate || end_date
+    const oDate = orderDate || order_date
+    
+    // 将 startDate 和 endDate 合并为 period
+    let period = ''
+    if (sDate || eDate) {
+      period = [sDate, eDate].filter(Boolean).join(' / ')
+    }
 
     const [result] = await pool.execute(
-      `INSERT INTO orders (project_id, code, period, order_date, attachment)
-       VALUES (?, ?, ?, ?, ?)`,
-      [projectId, code, period, order_date, attachment]
+      `INSERT INTO orders (project_id, code, period, order_date, amount, attachment)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [projectId, code, period || null, oDate || null, amount || 0, attachment || null]
     )
 
     res.status(201).json({
@@ -390,12 +402,60 @@ router.post('/orders', async (req: AuthRequest, res: Response): Promise<void> =>
       project_id: projectId,
       code,
       period,
-      order_date,
+      orderDate: oDate,
+      amount,
       attachment
     })
   } catch (error) {
     console.error('Create order error:', error)
     res.status(500).json({ error: 'Failed to create order' })
+  }
+})
+
+router.put('/orders/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params
+    const projectId = getProjectId(req)
+    const userId = req.user!.id
+
+    // 检查权限
+    const hasPermission = await checkProjectPermission(projectId, userId)
+    if (!hasPermission) {
+      res.status(403).json({ error: 'No permission to access this project' })
+      return
+    }
+
+    // 兼容前端发送的字段名 (start_date, end_date, order_date) 和 后端格式 (startDate, endDate, orderDate)
+    const { code, startDate, endDate, orderDate, amount, attachment, start_date, end_date, order_date } = req.body
+    
+    // 确定使用的日期字段
+    const sDate = startDate || start_date
+    const eDate = endDate || end_date
+    const oDate = orderDate || order_date
+    
+    // 将 startDate 和 endDate 合并为 period
+    let period = ''
+    if (sDate || eDate) {
+      period = [sDate, eDate].filter(Boolean).join(' / ')
+    }
+
+    await pool.execute(
+      `UPDATE orders SET code = ?, period = ?, order_date = ?, amount = ?, attachment = ? WHERE id = ? AND project_id = ?`,
+      [code, period || null, oDate || null, amount || 0, attachment || null, id, projectId]
+    )
+
+    res.json({
+      id,
+      project_id: projectId,
+      code,
+      period,
+      orderDate: oDate,
+      amount,
+      attachment
+    })
+  } catch (error) {
+    console.error('Update order error:', error)
+    res.status(500).json({ error: 'Failed to update order' })
   }
 })
 
@@ -960,3 +1020,5 @@ router.delete('/customers/:id', async (req: AuthRequest, res: Response): Promise
 })
 
 export default router
+
+

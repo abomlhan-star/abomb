@@ -321,7 +321,7 @@
           <button 
             v-if="hasManagePermission"
             class="px-3 py-1.5 text-xs font-medium bg-primary text-white rounded-lg flex items-center gap-1 shadow-sm"
-            @click="showAddContractDialog = true"
+            @click="openAddContractDialog"
             :disabled="currentContractType === 'main' && mainContractExists"
           >
             <el-icon class="text-sm"><Plus /></el-icon> 添加合同
@@ -404,7 +404,7 @@
               <tr v-for="(order, index) in filteredOrders" :key="index">
                 <td class="px-6 py-4 text-slate-500 uppercase text-xs">{{ order.code }}</td>
                 <td class="px-6 py-4 text-xs">{{ order.period }}</td>
-                <td class="px-6 py-4 text-xs">{{ order.orderDate }}</td>
+                <td class="px-6 py-4 text-xs">{{ formatDate(order.orderDate) }}</td>
                 <td class="px-6 py-4 text-xs font-medium text-slate-700 dark:text-slate-300">
                   {{ order.amount ? `¥${order.amount}` : '-' }}
                 </td>
@@ -3532,18 +3532,6 @@ const openApprovalConfigDialog = async () => {
   try {
     const periods = await dataApi.getSettlementPeriods()
     if (periods && periods.length > 0) {
-      // 将日期格式转换为 YYYY-MM-DD
-      const formatDate = (date: string) => {
-        if (!date) return ''
-        // 如果已经是 YYYY-MM-DD 格式，直接返回
-        if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          return date
-        }
-        // 否则转换为 YYYY-MM-DD 格式
-        const d = new Date(date)
-        return d.toISOString().split('T')[0]
-      }
-      
       approvalConfigForm.settlementPeriods = periods.map((p: any) => ({
         startDate: formatDate(p.start_date),
         endDate: formatDate(p.end_date),
@@ -3799,17 +3787,22 @@ const loadFinancialData = async () => {
     // 加载合同数据
     const contractsData = await dataApi.getContracts()
     if (contractsData && Array.isArray(contractsData)) {
-      contracts.value = contractsData.map((contract: any) => ({
-        id: contract.id,
-        project_id: contract.project_id,
-        type: contract.type,
-        name: contract.name,
-        code: contract.code,
-        amount: contract.amount,
-        period: `${contract.start_date} / ${contract.end_date}`,
-        customer: contract.customer,
-        attachment: contract.attachment
-      }))
+      contracts.value = contractsData.map((contract: any) => {
+        // 后端返回的是 period 字段，格式为 "startDate / endDate"
+        const period = contract.period || ''
+        
+        return {
+          id: contract.id,
+          project_id: contract.project_id,
+          type: contract.type,
+          name: contract.name,
+          code: contract.code,
+          amount: contract.amount,
+          period: period,
+          customer: contract.customer,
+          attachment: contract.attachment
+        }
+      })
     }
     
     // 加载订单数据
@@ -3819,8 +3812,8 @@ const loadFinancialData = async () => {
         id: order.id,
         project_id: order.project_id,
         code: order.code,
-        period: `${order.start_date} / ${order.end_date}`,
-        orderDate: order.order_date,
+        period: order.period || '',
+        orderDate: order.orderDate || order.order_date,
         amount: order.amount,
         attachment: order.attachment
       }))
@@ -3899,15 +3892,21 @@ const handleEditProject = () => {
     
     // 解析合同周期字符串为数组
     const periodStr = currentProject.value.contractPeriod || ''
-    if (periodStr && periodStr.includes(' ~ ')) {
+    console.log('periodStr:', periodStr)
+    
+    if (periodStr && periodStr.includes(' ~ ') && !periodStr.includes('undefined')) {
       const parts = periodStr.split(' ~ ')
-      if (parts.length === 2) {
+      if (parts.length === 2 && parts[0] && parts[1]) {
         // 直接使用完整日期
         editProject.contractPeriod = [parts[0], parts[1]]
+      } else {
+        editProject.contractPeriod = []
       }
     } else {
       editProject.contractPeriod = []
     }
+    
+    console.log('editProject.contractPeriod after parse:', editProject.contractPeriod)
     
     editProject.type = currentProject.value.type || '运营类'
     editProject.amount = currentProject.value.amount || ''
@@ -3957,7 +3956,12 @@ const updateProject = async () => {
   const customerName = selectedCustomer ? selectedCustomer.name : ''
   
   // 格式化合同周期（保留完整日期）
-  const contractPeriodStr = `${editProject.contractPeriod[0]} ~ ${editProject.contractPeriod[1]}`
+  let contractPeriodStr = ''
+  console.log('editProject.contractPeriod:', editProject.contractPeriod)
+  if (editProject.contractPeriod && editProject.contractPeriod.length === 2) {
+    contractPeriodStr = `${editProject.contractPeriod[0]} ~ ${editProject.contractPeriod[1]}`
+  }
+  console.log('contractPeriodStr:', contractPeriodStr)
   
   try {
     // 检查 currentProject 是否存在
@@ -3972,7 +3976,7 @@ const updateProject = async () => {
       status: currentProject.value.status,
       type: editProject.type,
       amount: parseFloat(editProject.amount) || 0,
-      contract_period: contractPeriodStr,
+      contract_period: contractPeriodStr || null,
       customer: customerName,
       group_id: editProject.group_id || null,
       customer_id: editProject.customer_id || null,
@@ -4036,7 +4040,10 @@ const createProject = async () => {
   const customerName = selectedCustomer ? selectedCustomer.name : ''
   
   // 格式化合同周期（保留完整日期）
-  const contractPeriodStr = `${newProject.contractPeriod[0]} ~ ${newProject.contractPeriod[1]}`
+  let contractPeriodStr = ''
+  if (newProject.contractPeriod && newProject.contractPeriod.length === 2) {
+    contractPeriodStr = `${newProject.contractPeriod[0]} ~ ${newProject.contractPeriod[1]}`
+  }
   
   // 调用后端API创建项目
   try {
@@ -4045,7 +4052,7 @@ const createProject = async () => {
       status: '进行中',
       type: newProject.type,
       amount: parseFloat(newProject.amount) || 0,
-      contract_period: contractPeriodStr,
+      contract_period: contractPeriodStr || null,
       customer: customerName,
       group_id: newProject.group_id || null,
       customer_id: newProject.customer_id || null,
@@ -4571,14 +4578,16 @@ const saveContract = async () => {
   }
   
   try {
+    // 合并开始日期和结束日期为period字段
+    const period = `${contractForm.startDate} / ${contractForm.endDate}`
+    
     // 准备后端API需要的数据格式
     const contractData = {
       type: currentContractType.value,
       name: contractForm.name,
       code: contractForm.code,
       amount: contractForm.amount,
-      start_date: contractForm.startDate,
-      end_date: contractForm.endDate,
+      period: period,
       customer: contractForm.customer,
       attachment: contractForm.attachment
     }
@@ -4589,8 +4598,6 @@ const saveContract = async () => {
       if (currentContract.id) {
         await dataApi.updateContract(currentContract.id, contractData)
       }
-      // 合并开始日期和结束日期为period字段
-      const period = `${contractForm.startDate} / ${contractForm.endDate}`
       contracts.value[currentContractIndex.value] = {
         ...contractData,
         id: currentContract.id,
@@ -4643,6 +4650,25 @@ const previewAttachment = (attachment: any) => {
 const isEditingContract = ref(false)
 const currentContractIndex = ref(-1)
 
+// 打开添加合同对话框
+const openAddContractDialog = () => {
+  // 重置表单
+  contractForm.name = ''
+  contractForm.code = ''
+  contractForm.amount = ''
+  contractForm.startDate = ''
+  contractForm.endDate = ''
+  contractForm.customer = ''
+  contractForm.attachment = null
+  
+  // 设置为添加模式
+  isEditingContract.value = false
+  currentContractIndex.value = -1
+  
+  // 显示对话框
+  showAddContractDialog.value = true
+}
+
 const editContract = (contract: any) => {
   // 填充表单数据
   contractForm.name = contract.name
@@ -4650,14 +4676,17 @@ const editContract = (contract: any) => {
   contractForm.amount = contract.amount
   
   // 解析开始日期和结束日期
-  if (contract.period) {
+  if (contract.period && !contract.period.includes('undefined')) {
     const [startDate, endDate] = contract.period.split(' / ')
-    contractForm.startDate = startDate
-    contractForm.endDate = endDate
+    contractForm.startDate = startDate || ''
+    contractForm.endDate = endDate || ''
+  } else {
+    contractForm.startDate = ''
+    contractForm.endDate = ''
   }
   
-  contractForm.customer = contract.customer
-  contractForm.attachment = contract.attachment
+  contractForm.customer = contract.customer || ''
+  contractForm.attachment = contract.attachment || null
   
   // 设置编辑状态
   isEditingContract.value = true
@@ -4723,14 +4752,18 @@ const saveOrder = async () => {
       start_date: orderForm.startDate,
       end_date: orderForm.endDate,
       order_date: orderForm.orderDate,
-      amount: orderForm.amount,
+      amount: parseFloat(orderForm.amount) || 0,
       attachment: orderForm.attachment
     }
+    
+    console.log('保存订单数据:', orderData)
     
     if (isEditingOrder.value && currentOrderIndex.value !== -1) {
       // 编辑现有订单
       const currentOrder = orders.value[currentOrderIndex.value]
+      console.log('编辑订单 - 当前订单:', currentOrder, '索引:', currentOrderIndex.value)
       if (currentOrder.id) {
+        console.log('调用更新API，ID:', currentOrder.id)
         await dataApi.updateOrder(currentOrder.id, orderData)
       }
       // 合并开始日期和结束日期为period字段
@@ -4788,6 +4821,9 @@ const downloadOrderAttachment = (attachment: any) => {
 }
 
 const editOrder = (order: any) => {
+  console.log('编辑订单 - 传入的订单:', order)
+  console.log('当前所有订单:', orders.value)
+  
   // 填充表单数据
   orderForm.code = order.code
   
@@ -4804,7 +4840,10 @@ const editOrder = (order: any) => {
   
   // 显示编辑对话框
   isEditingOrder.value = true
-  currentOrderIndex.value = orders.value.indexOf(order)
+  // 使用 order.id 而不是 indexOf，因为 filteredOrders 是过滤后的数组
+  const index = orders.value.findIndex(o => o.id === order.id)
+  console.log('找到的订单索引:', index)
+  currentOrderIndex.value = index
   showAddOrderDialog.value = true
 }
 
@@ -5415,11 +5454,19 @@ const departmentSettlementList = computed(() => {
 const formatContractPeriod = (period: string | undefined) => {
   if (!period) return '未设置'
   
+  // 检查是否包含 undefined
+  if (period.includes('undefined')) return '未设置'
+  
   if (period.includes(' ~ ')) {
     const parts = period.split(' ~ ')
     if (parts.length === 2) {
       const startDate = parts[0]
       let endDate = parts[1]
+      
+      // 检查日期是否有效
+      if (!startDate || !endDate || startDate === 'undefined' || endDate === 'undefined') {
+        return '未设置'
+      }
       
       // 如果结束日期没有年份，添加开始日期的年份
       if (endDate.indexOf('-') === 2 || endDate.length === 5) {
@@ -5432,6 +5479,18 @@ const formatContractPeriod = (period: string | undefined) => {
   }
   
   return period
+}
+
+// 日期格式化函数
+const formatDate = (date: string) => {
+  if (!date) return ''
+  // 如果已经是 YYYY-MM-DD 格式，直接返回
+  if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    return date
+  }
+  // 否则转换为 YYYY-MM-DD 格式
+  const d = new Date(date)
+  return d.toISOString().split('T')[0]
 }
 
 // 数字格式化函数
