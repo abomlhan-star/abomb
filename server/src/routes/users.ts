@@ -56,12 +56,27 @@ router.post('/', adminMiddleware, async (req: AuthRequest, res: Response): Promi
 router.put('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params
-    const { name, email, role } = req.body
+    const { name, email, role, password } = req.body
+    const userId = req.user!.id
 
-    await pool.execute(
-      `UPDATE users SET name = ?, email = ?, role = ? WHERE id = ?`,
-      [name, email, role, id]
-    )
+    // 确保用户只能修改自己的信息
+    if (parseInt(id) !== userId) {
+      res.status(403).json({ error: 'You can only update your own information' })
+      return
+    }
+
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10)
+      await pool.execute(
+        `UPDATE users SET name = ?, email = ?, role = ?, password = ? WHERE id = ?`,
+        [name, email, role, hashedPassword, id]
+      )
+    } else {
+      await pool.execute(
+        `UPDATE users SET name = ?, email = ?, role = ? WHERE id = ?`,
+        [name, email, role, id]
+      )
+    }
 
     res.json({ id, name, email, role })
   } catch (error) {
