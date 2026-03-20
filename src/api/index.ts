@@ -46,10 +46,6 @@ class ApiService {
     const response = await fetch(`${this.baseUrl}${endpoint}`, config)
 
     if (!response.ok) {
-      // 403错误是权限问题，不抛出错误，返回空数组
-      if (response.status === 403) {
-        return [] as T
-      }
       // 401错误是未授权，跳转到登录页面
       if (response.status === 401) {
         localStorage.removeItem('token')

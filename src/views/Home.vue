@@ -3786,6 +3786,8 @@ const loadProjects = async () => {
       // 设置当前项目为第一个项目
       if (projectList.value.length > 0) {
         currentProject.value = projectList.value[0]
+        // 保存当前项目ID到localStorage
+        localStorage.setItem('current_project_id', projectList.value[0].id.toString())
         // 加载当前项目的财务数据
         await loadFinancialData()
         // 加载当前项目的权限
