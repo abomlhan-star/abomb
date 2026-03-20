@@ -577,6 +577,7 @@
             >
               <template #default="{ row }">
                 <span :class="{
+                  
                   'text-green-500 dark:text-green-400': row.inputType === 'actual' || row.inputType === '实际',
                   'text-gray-500 dark:text-gray-400': row.inputType === 'virtual' || row.inputType === '虚拟'
                 }">
