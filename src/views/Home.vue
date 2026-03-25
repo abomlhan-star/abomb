@@ -79,6 +79,10 @@
                   <el-icon class="text-sm mr-2"><Management /></el-icon>
                   进入管理
                 </el-dropdown-item>
+                <el-dropdown-item @click="handleChangePassword">
+                  <el-icon class="text-sm mr-2"><Lock /></el-icon>
+                  修改密码
+                </el-dropdown-item>
                 <el-dropdown-item :divided="isAdmin" @click="handleLogout">
                   <el-icon class="text-sm mr-2 text-red-500"><SwitchButton /></el-icon>
                   <span class="text-red-500">退出系统</span>
@@ -2472,12 +2476,84 @@
       </div>
     </div>
   </div>
+  
+  <!-- 修改密码弹窗 -->
+  <div v-if="showChangePasswordDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div class="bg-white dark:bg-card-dark rounded-lg shadow-xl w-full max-w-md p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold">修改密码</h3>
+        <button 
+          class="text-slate-400 hover:text-slate-600 transition-colors"
+          @click="showChangePasswordDialog = false"
+        >
+          <el-icon><Close /></el-icon>
+        </button>
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">当前密码</label>
+          <el-input
+            v-model="changePasswordForm.currentPassword"
+            type="password"
+            placeholder="请输入当前密码"
+            class="w-full"
+          />
+          <p v-if="changePasswordErrors.currentPassword" class="text-red-500 text-xs mt-1">
+            {{ changePasswordErrors.currentPassword }}
+          </p>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium mb-1">新密码</label>
+          <el-input
+            v-model="changePasswordForm.newPassword"
+            type="password"
+            placeholder="请输入新密码"
+            class="w-full"
+          />
+          <p v-if="changePasswordErrors.newPassword" class="text-red-500 text-xs mt-1">
+            {{ changePasswordErrors.newPassword }}
+          </p>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium mb-1">确认新密码</label>
+          <el-input
+            v-model="changePasswordForm.confirmPassword"
+            type="password"
+            placeholder="请再次输入新密码"
+            class="w-full"
+          />
+          <p v-if="changePasswordErrors.confirmPassword" class="text-red-500 text-xs mt-1">
+            {{ changePasswordErrors.confirmPassword }}
+          </p>
+        </div>
+      </div>
+      
+      <div class="flex justify-end gap-2 mt-6">
+        <button 
+          class="px-4 py-2 text-sm font-medium border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+          @click="showChangePasswordDialog = false"
+        >
+          取消
+        </button>
+        <button 
+          class="px-4 py-2 text-sm font-medium bg-primary hover:bg-blue-600 text-white rounded-md transition-all"
+          @click="handleSubmitChangePassword"
+        >
+          确定
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, ElIcon } from 'element-plus'
+import { Lock, Close, Management, SwitchButton, Setting } from '@element-plus/icons-vue'
 import * as XLSX from 'xlsx'
 import { projectApi, dataApi, userApi } from '../api'
 
@@ -2507,6 +2583,19 @@ const permissionForm = reactive({
   permission: 'view'
 })
 const currentContractType = ref('main')
+
+// 修改密码相关
+const showChangePasswordDialog = ref(false)
+const changePasswordForm = reactive({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+const changePasswordErrors = reactive({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
 
 // 订单管理相关
 const showAddOrderDialog = ref(false)
@@ -3983,6 +4072,87 @@ const handleLogout = () => {
   
   ElMessage.success('退出登录成功')
   router.push('/login')
+}
+
+const handleChangePassword = () => {
+  console.log('handleChangePassword called')
+  console.log('Current showChangePasswordDialog value:', showChangePasswordDialog.value)
+  // 打开修改密码弹窗
+  showChangePasswordDialog.value = true
+  console.log('After setting to true:', showChangePasswordDialog.value)
+  // 重置表单
+  Object.assign(changePasswordForm, {
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
+  // 重置错误信息
+  Object.assign(changePasswordErrors, {
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
+  console.log('Form reset completed')
+}
+
+const handleSubmitChangePassword = async () => {
+  // 表单验证
+  let isValid = true
+  
+  // 重置错误信息
+  Object.assign(changePasswordErrors, {
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
+  
+  if (!changePasswordForm.currentPassword) {
+    changePasswordErrors.currentPassword = '请输入当前密码'
+    isValid = false
+  }
+  
+  if (!changePasswordForm.newPassword) {
+    changePasswordErrors.newPassword = '请输入新密码'
+    isValid = false
+  } else if (changePasswordForm.newPassword.length < 6) {
+    changePasswordErrors.newPassword = '新密码长度至少为6位'
+    isValid = false
+  }
+  
+  if (!changePasswordForm.confirmPassword) {
+    changePasswordErrors.confirmPassword = '请确认新密码'
+    isValid = false
+  } else if (changePasswordForm.newPassword !== changePasswordForm.confirmPassword) {
+    changePasswordErrors.confirmPassword = '两次输入的密码不一致'
+    isValid = false
+  }
+  
+  if (!isValid) return
+  
+  try {
+    // 获取当前用户信息
+    const userStr = localStorage.getItem('user')
+    if (!userStr) {
+      ElMessage.error('用户信息不存在')
+      return
+    }
+    
+    const user = JSON.parse(userStr)
+    
+    // 调用API更新密码
+    await userApi.update(user.id, {
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      password: changePasswordForm.newPassword
+    })
+    
+    ElMessage.success('密码修改成功')
+    showChangePasswordDialog.value = false
+  } catch (error: any) {
+    console.error('修改密码失败:', error)
+    ElMessage.error(error.message || '修改密码失败，请重试')
+  }
 }
 
 const handleProjectClick = async (project: any) => {
