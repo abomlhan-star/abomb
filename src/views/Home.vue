@@ -582,7 +582,7 @@
               <template #default="{ row }">
                 <span :class="{
                   
-                  'text-green-500 dark:text-green-400': row.inputType === 'actual' || row.inputType === '实际',
+                  'text-green-500 dark:text-green-400': row.inputType === 'actual' || row.inputType === '真实',
                   'text-gray-500 dark:text-gray-400': row.inputType === 'virtual' || row.inputType === '虚拟'
                 }">
                   {{ row.inputType === 'actual' ? '真实' : row.inputType === 'virtual' ? '虚拟' : row.inputType }}
@@ -2293,7 +2293,7 @@
                 v-model="personForm.inputType"
                 class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
               >
-                <option value="实际">实际</option>
+                <option value="真实">真实</option>
                 <option value="虚拟">虚拟</option>
               </select>
             </div>
@@ -2687,7 +2687,7 @@ const handleExcelFileChange = (event: Event) => {
         exitDate: excelDateToDate(row[headerMap['离场日期']] || row[headerMap['离场时间']]),
         priceWithTax: parseFloat(row[headerMap['含税单价']]) || 0,
         priceWithoutTax: parseFloat(row[headerMap['不含税单价']]) || 0,
-        inputType: row[headerMap['投入类型']] || '实际',
+        inputType: row[headerMap['投入类型']] || '真实',
         workDays: {}
       }
       
@@ -2761,7 +2761,7 @@ const confirmExcelImport = async () => {
         settlement_level: person.settlementLevel,
         price_with_tax: person.priceWithTax,
         price_without_tax: person.priceWithoutTax,
-        input_type: person.inputType === '实际' ? 'actual' : 'virtual',
+        input_type: person.inputType === '真实' ? 'actual' : 'virtual',
         project_id: currentProject.value?.id
       }
       
@@ -3544,7 +3544,7 @@ const defaultPersons = [
     settlementLevel: '高级',
     priceWithTax: 1000,
     priceWithoutTax: 943.4,
-    inputType: '实际'
+    inputType: '真实'
   }
 ]
 
@@ -3566,7 +3566,7 @@ const personForm = reactive({
   entryDate: '',
   exitDate: '',
   settlementLevel: '',
-  inputType: '实际', // 投入类型：实际或虚拟
+  inputType: '真实', // 投入类型：真实或虚拟
   priceWithTax: 0,
   priceWithoutTax: 0
 })
@@ -3844,6 +3844,7 @@ const loadProjects = async () => {
   try {
     // 强制清除 localStorage 中的项目列表数据，确保使用后端返回的最新数据
     localStorage.removeItem('project_list')
+    localStorage.removeItem('project_persons')
     
     const projects = await projectApi.getAll()
     if (projects && projects.length > 0) {
@@ -3949,24 +3950,43 @@ const loadFinancialData = async () => {
     
     // 加载人员数据
     const personsData = await dataApi.getPersons()
+    console.log('加载的人员数据:', personsData)
     if (personsData && Array.isArray(personsData)) {
-      persons.value = personsData.map((person: any) => ({
-        id: person.id,
-        project_id: person.project_id,
-        name: person.name,
-        employeeId: person.employee_id,
-        team: person.team,
-        position: person.position,
-        settlementDept: person.settlement_dept,
-        contact: person.contact,
-        entryDate: person.entry_date,
-        exitDate: person.exit_date,
-        settlementLevel: person.settlement_level,
-        priceWithTax: parseFloat(person.price_with_tax) || 0,
-        priceWithoutTax: parseFloat(person.price_without_tax) || 0,
-        inputType: person.input_type,
-        workDays: {}
-      }))
+      persons.value = personsData.map((person: any) => {
+        // 处理日期格式
+        let entryDate = person.entry_date
+        let exitDate = person.exit_date
+        
+        // 确保日期是 YYYY-MM-DD 格式
+        if (entryDate && typeof entryDate === 'string') {
+          if (entryDate.includes('T')) {
+            entryDate = entryDate.split('T')[0]
+          }
+        }
+        if (exitDate && typeof exitDate === 'string') {
+          if (exitDate.includes('T')) {
+            exitDate = exitDate.split('T')[0]
+          }
+        }
+        
+        return {
+          id: person.id,
+          project_id: person.project_id,
+          name: person.name,
+          employeeId: person.employee_id,
+          team: person.team,
+          position: person.position,
+          settlementDept: person.settlement_dept,
+          contact: person.contact,
+          entryDate: entryDate || '',
+          exitDate: exitDate || '',
+          settlementLevel: person.settlement_level,
+          priceWithTax: parseFloat(person.price_with_tax) || 0,
+          priceWithoutTax: parseFloat(person.price_without_tax) || 0,
+          inputType: person.input_type === 'actual' ? '真实' : person.input_type === 'virtual' ? '虚拟' : person.input_type,
+          workDays: {}
+        }
+      })
     }
     
     // 加载合同数据
@@ -5228,7 +5248,7 @@ const savePerson = async () => {
       settlement_level: personForm.settlementLevel,
       price_with_tax: personForm.priceWithTax,
       price_without_tax: personForm.priceWithoutTax,
-      input_type: personForm.inputType === '实际' ? 'actual' : 'virtual',
+      input_type: personForm.inputType === '真实' ? 'actual' : 'virtual',
       project_id: currentProject.value?.id
     }
     
@@ -5280,8 +5300,55 @@ const savePerson = async () => {
 }
 
 const editPerson = (person: any) => {
+  console.log('编辑人员 - 原始数据:', person)
+  
   // 填充表单数据
-  Object.assign(personForm, person)
+  let inputTypeValue = person.inputType || person.input_type || '真实'
+  // 转换后端返回的值
+  if (inputTypeValue === 'actual') {
+    inputTypeValue = '真实'
+  } else if (inputTypeValue === 'virtual') {
+    inputTypeValue = '虚拟'
+  }
+  
+  // 处理日期格式，确保是 YYYY-MM-DD 格式
+  let entryDateValue = person.entryDate || person.entry_date || ''
+  let exitDateValue = person.exitDate || person.exit_date || ''
+  
+  // 如果日期是 Date 对象，转换为字符串
+  if (entryDateValue instanceof Date) {
+    entryDateValue = entryDateValue.toISOString().split('T')[0]
+  }
+  if (exitDateValue instanceof Date) {
+    exitDateValue = exitDateValue.toISOString().split('T')[0]
+  }
+  
+  // 如果日期包含时间部分，只取日期部分
+  if (typeof entryDateValue === 'string' && entryDateValue.includes('T')) {
+    entryDateValue = entryDateValue.split('T')[0]
+  }
+  if (typeof exitDateValue === 'string' && exitDateValue.includes('T')) {
+    exitDateValue = exitDateValue.split('T')[0]
+  }
+  
+  console.log('处理后的日期 - 入场:', entryDateValue, '离场:', exitDateValue)
+  
+  Object.assign(personForm, {
+    name: person.name || '',
+    employeeId: person.employeeId || person.employee_id || '',
+    team: person.team || '',
+    position: person.position || '',
+    settlementDept: person.settlementDept || person.settlement_dept || '',
+    contact: person.contact || '',
+    entryDate: entryDateValue,
+    exitDate: exitDateValue,
+    settlementLevel: person.settlementLevel || person.settlement_level || '',
+    inputType: inputTypeValue,
+    priceWithTax: person.priceWithTax || person.price_with_tax || 0,
+    priceWithoutTax: person.priceWithoutTax || person.price_without_tax || 0
+  })
+  
+  console.log('编辑人员 - 表单数据:', personForm)
   
   // 显示编辑对话框
   isEditingPerson.value = true
