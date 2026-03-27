@@ -2318,18 +2318,6 @@
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">投入类型</label>
-              <select 
-                v-model="personForm.inputType"
-                class="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-              >
-                <option value="实际">实际</option>
-                <option value="虚拟">虚拟</option>
-              </select>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
               <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">含税单价</label>
               <input 
                 v-model="personForm.priceWithTax"
@@ -5269,6 +5257,7 @@ const savePerson = async () => {
     // 重置表单
     Object.assign(personForm, {
       name: '',
+      employeeId: '',
       team: '',
       position: '',
       settlementDept: '',

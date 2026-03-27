@@ -178,6 +178,7 @@ router.post('/persons', async (req: AuthRequest, res: Response): Promise<void> =
 
     const {
       name,
+      employee_id,
       team,
       position,
       settlement_dept,
@@ -192,11 +193,12 @@ router.post('/persons', async (req: AuthRequest, res: Response): Promise<void> =
     } = req.body
 
     const [result] = await pool.execute(
-      `INSERT INTO persons (project_id, name, team, position, settlement_dept, contact, entry_date, exit_date, settlement_level, price_with_tax, price_without_tax, input_type, work_days)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO persons (project_id, name, employee_id, team, position, settlement_dept, contact, entry_date, exit_date, settlement_level, price_with_tax, price_without_tax, input_type, work_days)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         projectId,
         name,
+        employee_id || null,
         team,
         position,
         settlement_dept,
@@ -215,6 +217,7 @@ router.post('/persons', async (req: AuthRequest, res: Response): Promise<void> =
       id: (result as any).insertId,
       project_id: projectId,
       name,
+      employee_id,
       team,
       position,
       settlement_dept,
@@ -248,6 +251,7 @@ router.put('/persons/:id', async (req: AuthRequest, res: Response): Promise<void
 
     const {
       name,
+      employee_id,
       team,
       position,
       settlement_dept,
@@ -262,9 +266,10 @@ router.put('/persons/:id', async (req: AuthRequest, res: Response): Promise<void
     } = req.body
 
     await pool.execute(
-      `UPDATE persons SET name = ?, team = ?, position = ?, settlement_dept = ?, contact = ?, entry_date = ?, exit_date = ?, settlement_level = ?, price_with_tax = ?, price_without_tax = ?, input_type = ?, work_days = ? WHERE id = ?`,
+      `UPDATE persons SET name = ?, employee_id = ?, team = ?, position = ?, settlement_dept = ?, contact = ?, entry_date = ?, exit_date = ?, settlement_level = ?, price_with_tax = ?, price_without_tax = ?, input_type = ?, work_days = ? WHERE id = ?`,
       [
         name,
+        employee_id || null,
         team,
         position,
         settlement_dept,
@@ -283,6 +288,7 @@ router.put('/persons/:id', async (req: AuthRequest, res: Response): Promise<void
     res.json({
       id,
       name,
+      employee_id,
       team,
       position,
       settlement_dept,
