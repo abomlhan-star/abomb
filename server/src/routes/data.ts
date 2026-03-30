@@ -4,6 +4,17 @@ import { authMiddleware, AuthRequest } from '../middleware/auth'
 
 const router = Router()
 
+// 辅助函数：格式化日期为 YYYY-MM-DD 格式
+const formatDate = (date: any): string | null => {
+  if (!date) return null
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return null
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // 清空所有项目数据的端点（无需认证）
 router.delete('/projects/all', async (req: any, res: Response): Promise<void> => {
   try {
@@ -749,7 +760,7 @@ router.post('/purchases', async (req: AuthRequest, res: Response): Promise<void>
         total_price || 0,
         settlement_ratio || 1,
         purchase_dept,
-        purchase_time,
+        formatDate(purchase_time),
         settlement_month,
         executor
       ]
@@ -802,7 +813,7 @@ router.put('/purchases/:id', async (req: AuthRequest, res: Response): Promise<vo
         total_price || 0,
         settlement_ratio || 1,
         purchase_dept,
-        purchase_time,
+        formatDate(purchase_time),
         settlement_month,
         executor,
         id,

@@ -474,7 +474,7 @@
               </div>
             </div>
             <button 
-              class="border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1"
+              class="border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1"
               :class="showAdvancedFilter ? 'bg-primary text-white border-primary hover:bg-blue-600' : ''"
               @click="showAdvancedFilter = !showAdvancedFilter"
             >
@@ -806,7 +806,11 @@
                 <span class="text-blue-600 dark:text-blue-400">{{ row.settlementRatio || 1 }}</span>
               </template>
             </el-table-column>
-            <el-table-column prop="purchaseTime" label="采购时间" width="120" />
+            <el-table-column label="采购时间" width="120">
+              <template #default="{ row }">
+                <span>{{ formatDate(row.purchaseTime) }}</span>
+              </template>
+            </el-table-column>
             <el-table-column prop="settlementMonth" label="结算月" width="100" />
             <el-table-column prop="executor" label="执行人" width="100" />
             <el-table-column label="结算金额" width="130" align="right">
