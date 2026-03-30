@@ -452,7 +452,10 @@
       <!-- 人员管理 -->
       <section 
         ref="fullscreenRef"
-        class="bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 overflow-hidden min-w-[1380px] max-w-[6000px] w-full"
+        :class="[
+          'bg-card-light dark:bg-card-dark rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800 min-w-[1380px] max-w-[6000px] w-full',
+          isFullscreen ? 'css-fullscreen' : 'overflow-hidden'
+        ]"
       >
         <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/20">
           <h3 class="font-bold flex items-center gap-2">
@@ -470,25 +473,14 @@
                 <el-icon class="text-slate-400 text-sm"><Search /></el-icon>
               </div>
             </div>
-            <div class="flex flex-wrap gap-2">
-              <button 
-                v-for="stat in departmentStats" 
-                :key="stat.dept"
-                class="px-3 py-1.5 text-[11px] border border-slate-200 dark:border-slate-700 rounded-lg transition-colors flex items-center gap-2"
-                :class="selectedDept === stat.dept ? 'bg-primary text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-700'"
-                @click="toggleDepartmentFilter(stat.dept)"
-              >
-                {{ stat.dept }}
-                <div class="flex items-center gap-1">
-                  <span class="text-xs font-medium" :class="selectedDept === stat.dept ? 'opacity-100' : 'opacity-70'">
-                    在职: <span class="text-green-500 dark:text-green-400">{{ stat.activeCount }}</span>
-                  </span>
-                  <span class="text-xs font-medium" :class="selectedDept === stat.dept ? 'opacity-100' : 'opacity-70'">
-                    全部: <span class="text-blue-500 dark:text-blue-400">{{ stat.allCount }}</span>
-                  </span>
-                </div>
-              </button>
-            </div>
+            <button 
+              class="border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1"
+              :class="showAdvancedFilter ? 'bg-primary text-white border-primary hover:bg-blue-600' : ''"
+              @click="showAdvancedFilter = !showAdvancedFilter"
+            >
+              <el-icon><Filter /></el-icon>
+              高级筛选
+            </button>
             <div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
               <button 
                 class="px-3 py-1 text-xs font-medium rounded-md transition-all"
@@ -539,6 +531,78 @@
             </button>
           </div>
         </div>
+        
+        <!-- 高级筛选面板 -->
+        <div v-if="showAdvancedFilter" class="px-6 py-4 bg-slate-50/80 dark:bg-slate-800/30 border-b border-slate-200/60 dark:border-slate-700">
+          <div class="flex flex-wrap gap-4 items-end">
+            <!-- 小组筛选 -->
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-medium text-slate-600 dark:text-slate-400">小组</label>
+              <el-select v-model="selectedTeam" placeholder="全部" clearable class="filter-select">
+                <el-option v-for="team in teamOptions" :key="team" :label="team" :value="team" />
+              </el-select>
+            </div>
+            
+            <!-- 部门筛选 -->
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-medium text-slate-600 dark:text-slate-400">部门</label>
+              <el-select v-model="selectedDept" placeholder="全部" clearable class="filter-select">
+                <el-option v-for="stat in departmentStats" :key="stat.dept" :label="stat.dept" :value="stat.dept" />
+              </el-select>
+            </div>
+            
+            <!-- 投入类型筛选 -->
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-medium text-slate-600 dark:text-slate-400">投入类型</label>
+              <el-select v-model="selectedInputType" placeholder="全部" clearable class="filter-select">
+                <el-option label="真实" value="actual" />
+                <el-option label="虚拟" value="virtual" />
+              </el-select>
+            </div>
+            
+            <!-- 对接人筛选 -->
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-medium text-slate-600 dark:text-slate-400">对接人</label>
+              <el-select v-model="selectedContact" placeholder="全部" clearable class="filter-select">
+                <el-option v-for="contact in contactOptions" :key="contact" :label="contact" :value="contact" />
+              </el-select>
+            </div>
+            
+            <!-- 结算等级筛选 -->
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-medium text-slate-600 dark:text-slate-400">结算等级</label>
+              <el-select v-model="selectedSettlementLevel" placeholder="全部" clearable class="filter-select">
+                <el-option v-for="level in settlementLevelOptions" :key="level" :label="level" :value="level" />
+              </el-select>
+            </div>
+            
+            <!-- 在场状态筛选 -->
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-medium text-slate-600 dark:text-slate-400">在场状态</label>
+              <el-select v-model="selectedAttendanceStatus" placeholder="全部" clearable class="filter-select">
+                <el-option label="在场" value="present" />
+                <el-option label="离场" value="left" />
+              </el-select>
+            </div>
+            
+            <!-- 操作按钮 -->
+            <div class="flex gap-2 pt-4">
+              <button 
+                class="border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg text-xs font-medium transition-colors"
+                @click="clearAllFilters"
+              >
+                清除筛选
+              </button>
+              <button 
+                class="bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-medium transition-colors"
+                @click="showAdvancedFilter = false"
+              >
+                应用筛选
+              </button>
+            </div>
+          </div>
+        </div>
+        
         <div class="overflow-x-auto">
           <el-table
             :data="filteredPersons"
@@ -2598,6 +2662,12 @@ const showTaxPrice = ref(true)
 const showSettlementTaxPrice = ref(true)
 const personSearchQuery = ref('')
 const selectedDept = ref('')
+const selectedTeam = ref('')
+const selectedInputType = ref('')
+const selectedContact = ref('')
+const selectedSettlementLevel = ref('')
+const selectedAttendanceStatus = ref('')
+const showAdvancedFilter = ref(false)
 
 // Excel导入相关
 const showExcelImportDialog = ref(false)
@@ -3437,6 +3507,36 @@ const filteredProjects = computed(() => {
 
 const currentProject = ref(null)
 
+// 高级筛选选项计算属性
+const teamOptions = computed(() => {
+  if (!currentProject.value) return []
+  const projectPersons = persons.value.filter(p => p.project_id === currentProject.value?.id && p.team)
+  return [...new Set(projectPersons.map(p => p.team))].sort()
+})
+
+const contactOptions = computed(() => {
+  if (!currentProject.value) return []
+  const projectPersons = persons.value.filter(p => p.project_id === currentProject.value?.id && p.contact)
+  return [...new Set(projectPersons.map(p => p.contact))].sort()
+})
+
+const settlementLevelOptions = computed(() => {
+  if (!currentProject.value) return []
+  const projectPersons = persons.value.filter(p => p.project_id === currentProject.value?.id && p.settlementLevel)
+  return [...new Set(projectPersons.map(p => p.settlementLevel))].sort()
+})
+
+// 清除所有筛选
+const clearAllFilters = () => {
+  selectedTeam.value = ''
+  selectedDept.value = ''
+  selectedInputType.value = ''
+  selectedContact.value = ''
+  selectedSettlementLevel.value = ''
+  selectedAttendanceStatus.value = ''
+  personSearchQuery.value = ''
+}
+
 // 新建项目表单
 const newProject = reactive({
   name: '',
@@ -3577,9 +3677,42 @@ const filteredPersons = computed(() => {
     person.project_id === currentProject.value?.id
   )
   
+  // 按小组筛选
+  if (selectedTeam.value) {
+    result = result.filter(person => person.team === selectedTeam.value)
+  }
+  
   // 按部门筛选
   if (selectedDept.value) {
     result = result.filter(person => person.settlementDept === selectedDept.value)
+  }
+  
+  // 按投入类型筛选
+  if (selectedInputType.value) {
+    if (selectedInputType.value === 'actual') {
+      result = result.filter(person => person.inputType === 'actual' || person.inputType === '实际')
+    } else if (selectedInputType.value === 'virtual') {
+      result = result.filter(person => person.inputType === 'virtual' || person.inputType === '虚拟')
+    }
+  }
+  
+  // 按对接人筛选
+  if (selectedContact.value) {
+    result = result.filter(person => person.contact === selectedContact.value)
+  }
+  
+  // 按结算等级筛选
+  if (selectedSettlementLevel.value) {
+    result = result.filter(person => person.settlementLevel === selectedSettlementLevel.value)
+  }
+  
+  // 按在场状态筛选
+  if (selectedAttendanceStatus.value) {
+    if (selectedAttendanceStatus.value === 'present') {
+      result = result.filter(person => !person.exitDate)
+    } else if (selectedAttendanceStatus.value === 'left') {
+      result = result.filter(person => person.exitDate)
+    }
   }
   
   // 按搜索查询筛选
@@ -3602,7 +3735,7 @@ const filteredPersons = computed(() => {
 })
 
 // 监听搜索和筛选变化，重置页码
-watch([personSearchQuery, selectedDept], () => {
+watch([personSearchQuery, selectedDept, selectedTeam, selectedInputType, selectedContact, selectedSettlementLevel, selectedAttendanceStatus], () => {
   currentPage.value = 1
 })
 
@@ -5443,34 +5576,8 @@ const cancelEdit = () => {
   editingCell.value = ''
 }
 
-// 切换全屏
+// 切换全屏（使用CSS伪全屏，避免浏览器全屏API导致下拉菜单无法显示）
 const toggleFullscreen = () => {
-  if (!fullscreenRef.value) return
-  
-  if (!isFullscreen.value) {
-    // 进入全屏
-    if (fullscreenRef.value.requestFullscreen) {
-      fullscreenRef.value.requestFullscreen()
-    } else if (fullscreenRef.value.mozRequestFullScreen) {
-      fullscreenRef.value.mozRequestFullScreen()
-    } else if (fullscreenRef.value.webkitRequestFullscreen) {
-      fullscreenRef.value.webkitRequestFullscreen()
-    } else if (fullscreenRef.value.msRequestFullscreen) {
-      fullscreenRef.value.msRequestFullscreen()
-    }
-  } else {
-    // 退出全屏
-    if (document.exitFullscreen) {
-      document.exitFullscreen()
-    } else if (document.mozCancelFullScreen) {
-      document.mozCancelFullScreen()
-    } else if (document.webkitExitFullscreen) {
-      document.webkitExitFullscreen()
-    } else if (document.msExitFullscreen) {
-      document.msExitFullscreen()
-    }
-  }
-  
   isFullscreen.value = !isFullscreen.value
 }
 
@@ -6441,5 +6548,162 @@ const isHoliday = (date: Date) => {
 
 .main-content > section:last-child {
   margin-bottom: 0;
+}
+
+/* CSS伪全屏样式 - 简化版 */
+.css-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  margin: 0;
+  border-radius: 0;
+}
+
+/* 全屏模式下覆盖所有overflow */
+.css-fullscreen,
+.css-fullscreen *,
+.css-fullscreen *::before,
+.css-fullscreen *::after {
+  overflow: visible !important;
+}
+
+/* 但表格需要保持滚动 */
+.css-fullscreen .el-table,
+.css-fullscreen .el-table__body-wrapper {
+  overflow: auto !important;
+  max-height: calc(100vh - 200px);
+}
+
+/* 高级筛选下拉框样式 */
+.filter-select {
+  width: 180px;
+}
+
+.filter-select :deep(.el-input__wrapper) {
+  height: 32px;
+  border-radius: 8px;
+  background-color: #ffffff;
+}
+
+.filter-select :deep(.el-select__wrapper) {
+  min-height: 32px !important;
+  height: 32px !important;
+}
+
+.filter-select :deep(.el-input__inner) {
+  height: 32px !important;
+  line-height: 32px !important;
+  font-size: 12px !important;
+  color: #303133 !important;
+}
+
+.filter-select :deep(.el-select__placeholder) {
+  color: #909399 !important;
+  font-size: 12px !important;
+}
+
+/* 悬停状态样式 */
+.filter-select:hover :deep(.el-input__wrapper) {
+  border-color: #409eff !important;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1) !important;
+  background-color: #ffffff !important;
+}
+
+.filter-select:hover :deep(.el-input__inner) {
+  color: #303133 !important;
+}
+
+.filter-select:hover :deep(.el-select__placeholder) {
+  color: #909399 !important;
+}
+
+/* 聚焦状态样式 */
+.filter-select :deep(.el-input__wrapper.is-focus) {
+  border-color: #409eff !important;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2) !important;
+  background-color: #ffffff !important;
+}
+
+.filter-select :deep(.el-input__wrapper.is-focus) .el-input__inner {
+  color: #303133 !important;
+}
+
+/* 暗黑模式 */
+.dark .filter-select :deep(.el-input__wrapper) {
+  background-color: #1e293b !important;
+}
+
+.dark .filter-select :deep(.el-input__inner) {
+  color: #e4e4e7 !important;
+}
+
+.dark .filter-select :deep(.el-select__placeholder) {
+  color: #a1a1aa !important;
+}
+
+.dark .filter-select:hover :deep(.el-input__wrapper) {
+  background-color: #1e293b !important;
+}
+
+/* 下拉选项悬停状态 - 关键修复 */
+.filter-select :deep(.el-select-dropdown__item:hover) {
+  color: #409eff !important;
+  background-color: #f5f7fa !important;
+}
+
+.filter-select :deep(.el-select-dropdown__item.hover) {
+  color: #409eff !important;
+  background-color: #f5f7fa !important;
+}
+
+.filter-select :deep(.el-select-dropdown__item.selected) {
+  color: #409eff !important;
+}
+
+.filter-select :deep(.el-select-dropdown__item.is-disabled:hover) {
+  color: #909399 !important;
+  background-color: transparent !important;
+}
+
+/* 暗黑模式下拉选项 */
+.dark .filter-select :deep(.el-select-dropdown__item:hover) {
+  color: #66b1ff !important;
+  background-color: #1e293b !important;
+}
+
+.dark .filter-select :deep(.el-select-dropdown__item.hover) {
+  color: #66b1ff !important;
+  background-color: #1e293b !important;
+}
+
+.dark .filter-select :deep(.el-select-dropdown__item.selected) {
+  color: #66b1ff !important;
+}
+</style>
+
+<!-- 下拉选项悬停颜色修复（全局样式，作用于teleport到body的弹窗） -->
+<style>
+.el-select-dropdown__item:hover,
+.el-select-dropdown__item.hover {
+  color: #409eff !important;
+  background-color: #f5f7fa !important;
+}
+
+.el-select-dropdown__item.selected {
+  color: #409eff !important;
+}
+
+/* 暗黑模式 */
+.dark .el-select-dropdown__item:hover,
+.dark .el-select-dropdown__item.hover {
+  color: #66b1ff !important;
+  background-color: #1e293b !important;
+}
+
+.dark .el-select-dropdown__item.selected {
+  color: #66b1ff !important;
 }
 </style>
