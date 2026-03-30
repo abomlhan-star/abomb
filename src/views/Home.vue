@@ -538,7 +538,7 @@
             <!-- 小组筛选 -->
             <div class="flex flex-col gap-1">
               <label class="text-xs font-medium text-slate-600 dark:text-slate-400">小组</label>
-              <el-select v-model="selectedTeam" placeholder="全部" clearable class="filter-select">
+              <el-select v-model="selectedTeam" placeholder="全部" clearable class="filter-select" teleported>
                 <el-option v-for="team in teamOptions" :key="team" :label="team" :value="team" />
               </el-select>
             </div>
@@ -546,7 +546,7 @@
             <!-- 部门筛选 -->
             <div class="flex flex-col gap-1">
               <label class="text-xs font-medium text-slate-600 dark:text-slate-400">部门</label>
-              <el-select v-model="selectedDept" placeholder="全部" clearable class="filter-select">
+              <el-select v-model="selectedDept" placeholder="全部" clearable class="filter-select" teleported>
                 <el-option v-for="stat in departmentStats" :key="stat.dept" :label="stat.dept" :value="stat.dept" />
               </el-select>
             </div>
@@ -554,7 +554,7 @@
             <!-- 投入类型筛选 -->
             <div class="flex flex-col gap-1">
               <label class="text-xs font-medium text-slate-600 dark:text-slate-400">投入类型</label>
-              <el-select v-model="selectedInputType" placeholder="全部" clearable class="filter-select">
+              <el-select v-model="selectedInputType" placeholder="全部" clearable class="filter-select" teleported>
                 <el-option label="真实" value="actual" />
                 <el-option label="虚拟" value="virtual" />
               </el-select>
@@ -563,7 +563,7 @@
             <!-- 对接人筛选 -->
             <div class="flex flex-col gap-1">
               <label class="text-xs font-medium text-slate-600 dark:text-slate-400">对接人</label>
-              <el-select v-model="selectedContact" placeholder="全部" clearable class="filter-select">
+              <el-select v-model="selectedContact" placeholder="全部" clearable class="filter-select" teleported>
                 <el-option v-for="contact in contactOptions" :key="contact" :label="contact" :value="contact" />
               </el-select>
             </div>
@@ -571,7 +571,7 @@
             <!-- 结算等级筛选 -->
             <div class="flex flex-col gap-1">
               <label class="text-xs font-medium text-slate-600 dark:text-slate-400">结算等级</label>
-              <el-select v-model="selectedSettlementLevel" placeholder="全部" clearable class="filter-select">
+              <el-select v-model="selectedSettlementLevel" placeholder="全部" clearable class="filter-select" teleported>
                 <el-option v-for="level in settlementLevelOptions" :key="level" :label="level" :value="level" />
               </el-select>
             </div>
@@ -579,7 +579,7 @@
             <!-- 在场状态筛选 -->
             <div class="flex flex-col gap-1">
               <label class="text-xs font-medium text-slate-600 dark:text-slate-400">在场状态</label>
-              <el-select v-model="selectedAttendanceStatus" placeholder="全部" clearable class="filter-select">
+              <el-select v-model="selectedAttendanceStatus" placeholder="全部" clearable class="filter-select" teleported>
                 <el-option label="在场" value="present" />
                 <el-option label="离场" value="left" />
               </el-select>
@@ -6628,7 +6628,7 @@ const isHoliday = (date: Date) => {
   left: 0;
   width: 100vw;
   height: 100vh;
-  z-index: 9999;
+  z-index: 100;
   margin: 0;
   border-radius: 0;
 }
@@ -6658,6 +6658,8 @@ const isHoliday = (date: Date) => {
   border-radius: 8px;
   background-color: #ffffff;
 }
+
+
 
 .filter-select :deep(.el-select__wrapper) {
   min-height: 32px !important;
