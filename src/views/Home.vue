@@ -28,38 +28,43 @@
       </div>
       
       <nav class="flex-1 px-3 space-y-1 overflow-y-auto">
-        <a 
-          v-for="project in filteredProjects" 
-          :key="project.id"
-          :class="[
-            'group flex flex-col p-3 rounded-xl transition-all border-l-4',
-            currentProject?.id === project.id 
-              ? 'bg-blue-50 dark:bg-blue-900/20 border-primary' 
-              : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 border-transparent'
-          ]"
-          href="#"
-          @click.prevent="handleProjectClick(project)"
-        >
-          <div class="flex justify-between items-start mb-1">
-            <span :class="[
-              'font-medium transition-all flex-1',
-              currentProject?.id === project.id ? 'font-semibold text-primary' : 'text-slate-700 dark:text-slate-300 group-hover:text-primary'
-            ]">
-              {{ project.label }}
-            </span>
-            <span :class="[
-              'px-2 py-0.5 text-[10px] rounded-full flex-shrink-0',
-              project.status === '已结束' 
-                ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400' 
-                : 'bg-blue-100 dark:bg-blue-800 text-primary'
-            ]">
-              {{ project.status }}
-            </span>
-          </div>
-          <span class="text-xs text-slate-500 dark:text-slate-400">
-            {{ project.customer }}
-          </span>
-        </a>
+        <draggable v-model="sortedProjects" item-key="id" @end="onDragEnd" handle=".drag-handle" class="space-y-1">
+          <template #item="{ element: project }">
+            <a 
+              :class="[
+                'group flex flex-col p-3 rounded-xl transition-all border-l-4 relative',
+                currentProject?.id === project.id 
+                  ? 'bg-blue-50 dark:bg-blue-900/20 border-primary' 
+                  : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 border-transparent'
+              ]"
+              href="#"
+              @click.prevent="handleProjectClick(project)"
+            >
+              <div class="drag-handle absolute left-1 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                <el-icon><Rank /></el-icon>
+              </div>
+              <div class="flex justify-between items-start mb-1 ml-4">
+                <span :class="[
+                  'font-medium transition-all flex-1',
+                  currentProject?.id === project.id ? 'font-semibold text-primary' : 'text-slate-700 dark:text-slate-300 group-hover:text-primary'
+                ]">
+                  {{ project.label }}
+                </span>
+                <span :class="[
+                  'px-2 py-0.5 text-[10px] rounded-full flex-shrink-0',
+                  project.status === '已结束' 
+                    ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400' 
+                    : 'bg-blue-100 dark:bg-blue-800 text-primary'
+                ]">
+                  {{ project.status }}
+                </span>
+              </div>
+              <span class="text-xs text-slate-500 dark:text-slate-400 ml-4">
+                {{ project.customer }}
+              </span>
+            </a>
+          </template>
+        </draggable>
       </nav>
       
       <div class="p-4 border-t border-slate-200 dark:border-slate-800">
@@ -2609,8 +2614,9 @@
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, ElIcon } from 'element-plus'
-import { Lock, Close, Management, SwitchButton, Setting } from '@element-plus/icons-vue'
+import { Lock, Close, Management, SwitchButton, Setting, Rank } from '@element-plus/icons-vue'
 import * as XLSX from 'xlsx'
+import draggable from 'vuedraggable'
 import { projectApi, dataApi, userApi } from '../api'
 
 const router = useRouter()
@@ -2619,6 +2625,28 @@ const userDisplayName = ref('')
 const userEmail = ref('')
 const userRole = ref('')
 const searchQuery = ref('')
+const loginAccount = ref('')
+const projectSortOrder = ref<number[]>([])
+
+// 按账号加载项目排序
+const loadProjectSortOrder = () => {
+  if (!loginAccount.value) return []
+  const saved = localStorage.getItem(`project_sort_${loginAccount.value}`)
+  if (saved) {
+    try {
+      return JSON.parse(saved)
+    } catch (e) {
+      return []
+    }
+  }
+  return []
+}
+
+// 按账号保存项目排序
+const saveProjectSortOrder = () => {
+  if (!loginAccount.value) return
+  localStorage.setItem(`project_sort_${loginAccount.value}`, JSON.stringify(projectSortOrder.value))
+}
 
 // 计算属性：是否为系统管理员
 const isAdmin = computed(() => {
@@ -3509,6 +3537,59 @@ const filteredProjects = computed(() => {
   })
 })
 
+const sortedProjects = computed({
+  get: () => {
+    let projects = [...projectList.value]
+    
+    if (searchQuery.value) {
+      const query = searchQuery.value.toLowerCase()
+      projects = projects.filter(project => 
+        project.label.toLowerCase().includes(query) || 
+        project.customer.toLowerCase().includes(query)
+      )
+    }
+    
+    if (projectSortOrder.value && projectSortOrder.value.length > 0) {
+      projects.sort((a, b) => {
+        const indexA = projectSortOrder.value.indexOf(a.id)
+        const indexB = projectSortOrder.value.indexOf(b.id)
+        if (indexA !== -1 && indexB !== -1) {
+          return indexA - indexB
+        }
+        if (indexA !== -1) return -1
+        if (indexB !== -1) return 1
+        const statusOrder: Record<string, number> = {
+          '进行中': 0,
+          '已结束': 1
+        }
+        const orderA = statusOrder[a.status] ?? 0
+        const orderB = statusOrder[b.status] ?? 0
+        return orderA - orderB
+      })
+    } else {
+      projects.sort((a, b) => {
+        const statusOrder: Record<string, number> = {
+          '进行中': 0,
+          '已结束': 1
+        }
+        const orderA = statusOrder[a.status] ?? 0
+        const orderB = statusOrder[b.status] ?? 0
+        return orderA - orderB
+      })
+    }
+    
+    return projects
+  },
+  set: (value) => {
+    projectSortOrder.value = value.map(p => p.id)
+    saveProjectSortOrder()
+  }
+})
+
+const onDragEnd = () => {
+  saveProjectSortOrder()
+}
+
 const currentProject = ref(null)
 
 // 高级筛选选项计算属性
@@ -3932,11 +4013,10 @@ const editErrors = reactive({
 onMounted(async () => {
   // 从localStorage获取用户信息
   const userStr = localStorage.getItem('user')
-  let loginAccount = ''
   if (userStr) {
     const user = JSON.parse(userStr)
     console.log('用户信息:', user)
-    loginAccount = user.username || ''
+    loginAccount.value = user.username || ''
     username.value = user.username || 'Admin User'
     // 优先使用localStorage中的用户姓名
     userDisplayName.value = user.name || user.username || 'Admin User'
@@ -3951,11 +4031,14 @@ onMounted(async () => {
     userRole.value = 'admin'
   }
   
+  // 加载项目排序
+  projectSortOrder.value = loadProjectSortOrder()
+  
   // 从系统用户数据中查找用户的显示姓名、邮箱和角色（作为备用）
   const systemUsers = localStorage.getItem('system_users')
   if (systemUsers) {
     const users = JSON.parse(systemUsers)
-    const currentUser = users.find((u: any) => u.account === loginAccount || u.account === username.value)
+    const currentUser = users.find((u: any) => u.account === loginAccount.value || u.account === username.value)
     if (currentUser) {
       // 如果系统用户数据中有姓名，使用它
       if (currentUser.name) {
