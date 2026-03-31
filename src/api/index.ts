@@ -16,10 +16,16 @@ class ApiService {
   private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const { method = 'GET', body, headers = {} } = options
 
-    const defaultHeaders: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...headers
+    // 如果是FormData，不设置Content-Type，让浏览器自动设置
+    const defaultHeaders: Record<string, string> = {}
+    
+    // 只有非FormData才设置Content-Type
+    if (!(body instanceof FormData)) {
+      defaultHeaders['Content-Type'] = 'application/json'
     }
+    
+    // 合并用户自定义headers
+    Object.assign(defaultHeaders, headers)
 
     // 登录请求不需要携带token
     if (!endpoint.includes('/auth/login')) {
@@ -40,7 +46,12 @@ class ApiService {
     }
 
     if (body && method !== 'GET') {
-      config.body = JSON.stringify(body)
+      // 如果是FormData，直接使用，不要JSON序列化
+      if (body instanceof FormData) {
+        config.body = body
+      } else {
+        config.body = JSON.stringify(body)
+      }
     }
 
     const response = await fetch(`${this.baseUrl}${endpoint}`, config)
@@ -144,6 +155,18 @@ export const projectApi = {
 
   deletePermission: (projectId: number, userId: number) =>
     api.delete(`/projects/${projectId}/permissions/${userId}`)
+}
+
+export const uploadApi = {
+  uploadFile: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.request<any>('/uploads/upload', {
+      method: 'POST',
+      body: formData,
+      headers: {}
+    })
+  }
 }
 
 export const dataApi = {

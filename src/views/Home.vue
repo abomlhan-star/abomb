@@ -360,10 +360,10 @@
                   <button 
                     v-if="contract.attachment"
                     class="text-primary hover:text-blue-700 transition-colors flex items-center gap-1"
-                    @click="previewAttachment(contract.attachment)"
+                    @click="downloadAttachment(contract.attachment)"
                   >
-                    <el-icon class="text-sm"><Document /></el-icon>
-                    <span class="text-xs">预览</span>
+                    <el-icon class="text-sm"><Download /></el-icon>
+                    <span class="text-xs">下载</span>
                   </button>
                   <span v-else class="text-slate-400 text-xs">无附件</span>
                 </td>
@@ -2617,7 +2617,7 @@ import { ElMessage, ElMessageBox, ElIcon } from 'element-plus'
 import { Lock, Close, Management, SwitchButton, Setting, Rank } from '@element-plus/icons-vue'
 import * as XLSX from 'xlsx'
 import draggable from 'vuedraggable'
-import { projectApi, dataApi, userApi } from '../api'
+import { projectApi, dataApi, userApi, uploadApi } from '../api'
 
 const router = useRouter()
 const username = ref('')
@@ -5148,6 +5148,15 @@ const saveContract = async () => {
     // 合并开始日期和结束日期为period字段
     const period = `${contractForm.startDate} / ${contractForm.endDate}`
     
+    let attachmentPath = contractForm.attachment
+    
+    // 如果有文件需要上传
+    if (contractForm.attachment && contractForm.attachment instanceof File) {
+      ElMessage.info('正在上传文件...')
+      const uploadResult = await uploadApi.uploadFile(contractForm.attachment)
+      attachmentPath = uploadResult.filePath
+    }
+    
     // 准备后端API需要的数据格式
     const contractData = {
       type: currentContractType.value,
@@ -5156,7 +5165,7 @@ const saveContract = async () => {
       amount: contractForm.amount,
       period: period,
       customer: contractForm.customer,
-      attachment: contractForm.attachment
+      attachment: attachmentPath
     }
     
     if (isEditingContract.value && currentContractIndex.value !== -1) {
@@ -5208,9 +5217,64 @@ const saveContract = async () => {
 }
 
 const previewAttachment = (attachment: any) => {
-  // 在实际应用中，这里应该打开PDF预览
-  ElMessage.info('PDF预览功能已触发')
-  console.log('预览附件:', attachment)
+  if (!attachment) {
+    ElMessage.error('没有附件可预览')
+    return
+  }
+  
+  // 构建完整的预览URL
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+  const previewUrl = `${baseUrl}/uploads/preview/${attachment.split('/').pop()}`
+  
+  // 打开新窗口预览
+  window.open(previewUrl, '_blank')
+  console.log('预览附件:', attachment, '预览URL:', previewUrl)
+}
+
+const downloadAttachment = (attachment: any) => {
+  if (!attachment) {
+    ElMessage.error('没有附件可下载')
+    return
+  }
+  
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+  const filename = attachment.split('/').pop()
+  const downloadUrl = `${baseUrl}/uploads/download/${filename}`
+  
+  // 获取token
+  const token = localStorage.getItem('token')
+  if (!token) {
+    ElMessage.error('请先登录')
+    return
+  }
+  
+  // 使用fetch下载文件
+  fetch(downloadUrl, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('下载失败')
+    }
+    return response.blob()
+  })
+  .then(blob => {
+    // 创建下载链接
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+  })
+  .catch(error => {
+    console.error('下载失败:', error)
+    ElMessage.error('下载失败，请重试')
+  })
 }
 
 // 编辑合同相关状态
@@ -5313,6 +5377,15 @@ const saveOrder = async () => {
   }
   
   try {
+    let attachmentPath = orderForm.attachment
+    
+    // 如果有文件需要上传
+    if (orderForm.attachment && orderForm.attachment instanceof File) {
+      ElMessage.info('正在上传文件...')
+      const uploadResult = await uploadApi.uploadFile(orderForm.attachment)
+      attachmentPath = uploadResult.filePath
+    }
+    
     // 准备后端API需要的数据格式
     const orderData = {
       code: orderForm.code,
@@ -5320,7 +5393,7 @@ const saveOrder = async () => {
       end_date: orderForm.endDate,
       order_date: orderForm.orderDate,
       amount: parseFloat(orderForm.amount) || 0,
-      attachment: orderForm.attachment
+      attachment: attachmentPath
     }
     
     console.log('保存订单数据:', orderData)
@@ -5376,15 +5449,33 @@ const saveOrder = async () => {
 }
 
 const previewOrderAttachment = (attachment: any) => {
-  // 在实际应用中，这里应该打开PDF预览
-  ElMessage.info('PDF预览功能已触发')
-  console.log('预览订单附件:', attachment)
+  if (!attachment) {
+    ElMessage.error('没有附件可预览')
+    return
+  }
+  
+  // 构建完整的预览URL
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+  const previewUrl = `${baseUrl}/uploads/preview/${attachment.split('/').pop()}`
+  
+  // 打开新窗口预览
+  window.open(previewUrl, '_blank')
+  console.log('预览订单附件:', attachment, '预览URL:', previewUrl)
 }
 
 const downloadOrderAttachment = (attachment: any) => {
-  // 在实际应用中，这里应该触发文件下载
-  ElMessage.info('PDF下载功能已触发')
-  console.log('下载订单附件:', attachment)
+  if (!attachment) {
+    ElMessage.error('没有附件可下载')
+    return
+  }
+  
+  // 构建完整的下载URL
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+  const downloadUrl = `${baseUrl}/uploads/download/${attachment.split('/').pop()}`
+  
+  // 触发下载
+  window.open(downloadUrl, '_blank')
+  console.log('下载订单附件:', attachment, '下载URL:', downloadUrl)
 }
 
 const editOrder = (order: any) => {

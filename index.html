@@ -4,8 +4,13 @@
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>成研运营项目管理 - Enterprise Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <!-- 使用系统默认字体作为备选 -->
+    <style>
+      /* 系统默认字体栈 */
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      }
+    </style>
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
     <script>
       tailwind.config = {
@@ -20,7 +25,7 @@
               "card-dark": "#1E293B",
             },
             fontFamily: {
-              display: ["Inter", "system-ui", "sans-serif"],
+              display: ["-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
             },
             borderRadius: {
               DEFAULT: "0.75rem",

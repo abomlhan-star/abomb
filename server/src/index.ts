@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
+import path from 'path'
 import { testConnection } from './database/connection'
 import { runMigrations } from './database/migrations'
 import { errorHandler, notFoundHandler } from './middleware/error'
@@ -20,6 +21,10 @@ app.use(cors({
   credentials: true
 }))
 
+// 注册上传路由（放在express.json之前，避免解析multipart/form-data）
+import uploadRoutes from './routes/uploads'
+app.use('/api/uploads', uploadRoutes)
+
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
@@ -35,6 +40,9 @@ app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/projects', projectRoutes)
 app.use('/api/data', dataRoutes)
+
+// 静态文件服务
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
 
 app.use(notFoundHandler)
 app.use(errorHandler)
