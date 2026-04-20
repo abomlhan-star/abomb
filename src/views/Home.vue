@@ -5828,34 +5828,38 @@ const toggleFullscreen = () => {
 
 // 下载人员列表
 const downloadPersonList = () => {
-  // 准备CSV数据
-  let csvContent = '姓名,小组,部门,岗位,投入类型,对接人,入场日期,离场日期,结算等级,结算单价,'
+  // 准备CSV数据 - 与表格列一致
+  let csvContent = '人员姓名,工号,小组,部门,投入类型,对接人,入场日期,离场日期,结算等级,结算单价,'
   
-  // 添加月份列
-  for (let month = 1; month <= 12; month++) {
-    csvContent += `${month}月工作天数,`
-  }
+  // 添加月份列 - 使用与表格一致的月份格式
+  months.value.forEach(m => {
+    csvContent += `${m.label}工作天数,`
+  })
   csvContent = csvContent.slice(0, -1) + '\n'
   
   // 添加人员数据
   filteredPersons.value.forEach(person => {
+    // 基本信息 - 与表格列一致
     const row = [
       person.name,
+      person.employeeId || '',
       person.team,
       person.settlementDept,
-      person.position,
-      person.inputType,
-      person.contact,
-      person.entryDate,
-      person.exitDate || '未离场',
+      person.inputType === 'actual' ? '真实' : person.inputType === 'virtual' ? '虚拟' : person.inputType,
+      person.contact || '',
+      formatDate(person.entryDate),
+      person.exitDate ? formatDate(person.exitDate) : '未离场',
       person.settlementLevel,
       showTaxPrice.value ? person.priceWithTax : person.priceWithoutTax
     ]
     
-    // 添加每月工作天数
-    for (let month = 1; month <= 12; month++) {
-      row.push(person.workDays && person.workDays[month] ? person.workDays[month] : calculateMonthlyWorkDays(person, month))
-    }
+    // 添加每月工作天数 - 使用months计算属性
+    months.value.forEach(m => {
+      const workDays = person.workDays && person.workDays[m.key] !== undefined 
+        ? person.workDays[m.key] 
+        : calculateMonthlyWorkDays(person, m)
+      row.push(workDays)
+    })
     
     csvContent += row.join(',') + '\n'
   })
