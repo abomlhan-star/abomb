@@ -1,7 +1,7 @@
 {
   "name": "cheng-yan-operation",
   "private": true,
-  "version": "v1.1.7beta",
+  "version": "v1.1.9beta",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -720,7 +720,7 @@
                     class="font-semibold cursor-pointer hover:text-primary transition-colors"
                     @click="showWorkDayInput(row, m)"
                   >
-                    {{ row.workDays && row.workDays[m.key] ? row.workDays[m.key] : calculateMonthlyWorkDays(row, m) }}
+                    {{ getWorkDaysValue(row, m) }}
                   </span>
                   <el-input
                     v-if="editingCell === `${row.name}-${m.key}`"
@@ -1544,9 +1544,10 @@
             >
               <el-table-column prop="name" label="姓名" width="100">
                 <template #default="{ row }">
-                  <span :class="isDuplicatePerson(row.name) ? 'text-red-500 font-bold' : ''">{{ row.name }}</span>
+                  <span :class="isDuplicatePerson(row.employeeId) ? 'text-red-500 font-bold' : ''">{{ row.name }}</span>
                 </template>
               </el-table-column>
+              <el-table-column prop="employeeId" label="工号" width="100" />
               <el-table-column prop="team" label="团队" width="100" />
               <el-table-column prop="position" label="岗位" width="120" />
               <el-table-column prop="settlementDept" label="结算部门" width="100" />
@@ -2711,8 +2712,8 @@ const excelFileName = ref('')
 const excelPreviewData = ref<Array<any>>([])
 const duplicatePersonNames = ref<string[]>([])
 
-const isDuplicatePerson = (name: string) => {
-  return duplicatePersonNames.value.includes(name)
+const isDuplicatePerson = (employeeId: string) => {
+  return duplicatePersonNames.value.includes(employeeId)
 }
 
 const handleExcelFileChange = (event: Event) => {
@@ -2802,9 +2803,16 @@ const handleExcelFileChange = (event: Event) => {
       }
       
       if (person.name) {
-        const existingPerson = persons.value.find((p: any) => p.name === person.name)
+        const existingPerson = persons.value.find((p: any) => p.employeeId === person.employeeId && person.employeeId)
         if (existingPerson) {
-          duplicates.push(person.name)
+          const existStart = new Date(existingPerson.entryDate || existingPerson.entry_date)
+          const existEnd = new Date(existingPerson.exitDate || existingPerson.exit_date)
+          const newStart = new Date(person.entryDate)
+          const newEnd = new Date(person.exitDate)
+          const hasOverlap = existStart <= newEnd && newStart <= existEnd
+          if (hasOverlap) {
+            duplicates.push(person.employeeId)
+          }
         }
         parsedData.push(person)
       }
@@ -4204,7 +4212,7 @@ const loadFinancialData = async () => {
           priceWithTax: parseFloat(person.price_with_tax) || 0,
           priceWithoutTax: parseFloat(person.price_without_tax) || 0,
           inputType: person.input_type === 'actual' ? '真实' : person.input_type === 'virtual' ? '虚拟' : person.input_type,
-          workDays: {}
+          workDays: person.work_days ? (typeof person.work_days === 'string' ? JSON.parse(person.work_days) : person.work_days) : {}
         }
       })
     }
@@ -5544,6 +5552,22 @@ const savePerson = async () => {
     ElMessage.error('请填写所有必填字段')
     return
   }
+
+  // 检查同一项目下是否存在相同工号且周期重叠的人员
+  if (!isEditingPerson.value) {
+    const existPerson = persons.value.find((p: any) => {
+      if (p.employeeId !== personForm.employeeId || !personForm.employeeId) return false
+      const existStart = new Date(p.entryDate || p.entry_date)
+      const existEnd = new Date(p.exitDate || p.exit_date || '9999-12-31')
+      const newStart = new Date(personForm.entryDate)
+      const newEnd = personForm.exitDate ? new Date(personForm.exitDate) : new Date('9999-12-31')
+      return existStart <= newEnd && newStart <= existEnd
+    })
+    if (existPerson) {
+      ElMessage.error(`人员存在重复投入周期！工号 ${personForm.employeeId} 的 ${existPerson.name} 已在 ${existPerson.entryDate || existPerson.entry_date} 至 ${existPerson.exitDate || existPerson.exit_date} 期间投入`)
+      return
+    }
+  }
   
   try {
     // 准备后端API需要的数据格式
@@ -5571,6 +5595,7 @@ const savePerson = async () => {
       }
       persons.value[currentPersonIndex.value] = {
         ...personForm,
+        id: currentPerson.id,
         project_id: currentProject.value?.id
       }
       ElMessage.success('人员编辑成功')
@@ -5797,7 +5822,7 @@ const saveWorkDay = (row: any, m: { year: number; month: number; key: string }) 
   const numValue = parseFloat(editValue.value)
   if (!isNaN(numValue) && numValue >= 0) {
     // 找到人员在数组中的索引
-    const index = persons.value.findIndex(p => p.name === row.name && p.position === row.position)
+    const index = persons.value.findIndex(p => p.id === row.id)
     if (index !== -1) {
       // 确保workDays对象存在
       if (!persons.value[index].workDays) {
@@ -5828,6 +5853,59 @@ const toggleFullscreen = () => {
 
 // 下载人员列表
 const downloadPersonList = () => {
+  // 获取所有符合筛选条件的人员（不分页）
+  let allFilteredPersons = persons.value.filter(person => 
+    person.project_id === currentProject.value?.id
+  )
+  
+  // 按小组筛选
+  if (selectedTeam.value) {
+    allFilteredPersons = allFilteredPersons.filter(person => person.team === selectedTeam.value)
+  }
+  
+  // 按部门筛选
+  if (selectedDept.value) {
+    allFilteredPersons = allFilteredPersons.filter(person => person.settlementDept === selectedDept.value)
+  }
+  
+  // 按投入类型筛选
+  if (selectedInputType.value) {
+    if (selectedInputType.value === 'actual') {
+      allFilteredPersons = allFilteredPersons.filter(person => person.inputType === 'actual' || person.inputType === '实际')
+    } else if (selectedInputType.value === 'virtual') {
+      allFilteredPersons = allFilteredPersons.filter(person => person.inputType === 'virtual' || person.inputType === '虚拟')
+    }
+  }
+  
+  // 按对接人筛选
+  if (selectedContact.value) {
+    allFilteredPersons = allFilteredPersons.filter(person => person.contact === selectedContact.value)
+  }
+  
+  // 按结算等级筛选
+  if (selectedSettlementLevel.value) {
+    allFilteredPersons = allFilteredPersons.filter(person => person.settlementLevel === selectedSettlementLevel.value)
+  }
+  
+  // 按在场状态筛选
+  if (selectedAttendanceStatus.value) {
+    if (selectedAttendanceStatus.value === 'present') {
+      allFilteredPersons = allFilteredPersons.filter(person => !person.exitDate)
+    } else if (selectedAttendanceStatus.value === 'left') {
+      allFilteredPersons = allFilteredPersons.filter(person => person.exitDate)
+    }
+  }
+  
+  // 按搜索查询筛选
+  if (personSearchQuery.value) {
+    const query = personSearchQuery.value.toLowerCase()
+    allFilteredPersons = allFilteredPersons.filter(person => 
+      person.name.toLowerCase().includes(query) ||
+      person.position.toLowerCase().includes(query) ||
+      person.team.toLowerCase().includes(query)
+    )
+  }
+  
   // 准备CSV数据 - 与表格列一致
   let csvContent = '人员姓名,工号,小组,部门,投入类型,对接人,入场日期,离场日期,结算等级,结算单价,'
   
@@ -5837,8 +5915,8 @@ const downloadPersonList = () => {
   })
   csvContent = csvContent.slice(0, -1) + '\n'
   
-  // 添加人员数据
-  filteredPersons.value.forEach(person => {
+  // 添加人员数据 - 使用所有符合条件的人员（不分页）
+  allFilteredPersons.forEach(person => {
     // 基本信息 - 与表格列一致
     const row = [
       person.name,
@@ -5855,9 +5933,9 @@ const downloadPersonList = () => {
     
     // 添加每月工作天数 - 使用months计算属性
     months.value.forEach(m => {
-      const workDays = person.workDays && person.workDays[m.key] !== undefined 
-        ? person.workDays[m.key] 
-        : calculateMonthlyWorkDays(person, m)
+      const hasWorkDays = person.workDays && person.workDays[m.key] !== undefined
+      const workDaysValue = hasWorkDays ? person.workDays[m.key] : calculateMonthlyWorkDays(person, m)
+      const workDays = parseFloat(workDaysValue)
       row.push(workDays)
     })
     
@@ -5889,7 +5967,7 @@ const editWorkDays = (row: any, month: number) => {
     const numValue = parseFloat(newValue)
     if (!isNaN(numValue) && numValue >= 0) {
       // 找到人员在数组中的索引
-      const index = persons.value.findIndex(p => p.name === row.name && p.position === row.position)
+      const index = persons.value.findIndex(p => p.id === row.id)
       if (index !== -1) {
         // 确保workDays对象存在
         if (!persons.value[index].workDays) {
@@ -5907,13 +5985,40 @@ const editWorkDays = (row: any, month: number) => {
   }
 }
 
+// 缓存的工时计算结果（使用computed避免重复计算）
+const workDaysCache = computed(() => {
+  const cache: Record<string, Record<string, string>> = {}
+  const currentProjectId = currentProject.value?.id
+
+  if (!currentProjectId || !persons.value) return cache
+
+  persons.value.forEach(person => {
+    if (person.project_id !== currentProjectId) return
+
+    const personCache: Record<string, string> = {}
+    months.value.forEach(m => {
+      // 优先使用手动设置的工时
+      if (person.workDays && person.workDays[m.key] !== undefined) {
+        personCache[m.key] = person.workDays[m.key]
+      } else {
+        // 计算并缓存结果
+        personCache[m.key] = calculateMonthlyWorkDays(person, m)
+      }
+    })
+    cache[person.id] = personCache
+  })
+
+  return cache
+})
+
+// 获取工时值的辅助函数（使用缓存）
+const getWorkDaysValue = (person: any, m: { year: number; month: number; key: string }) => {
+  const personCache = workDaysCache.value[person.id]
+  return personCache ? personCache[m.key] : '0.000'
+}
+
 // 按月计算工作天数函数
 const calculateMonthlyWorkDays = (person: any, m: { year: number; month: number; key: string }) => {
-  // 优先使用手动设置的工时
-  if (person.workDays && person.workDays[m.key] !== undefined) {
-    return person.workDays[m.key]
-  }
-  
   // 解析合同周期
   const contractPeriod = currentProject.value?.contractPeriod || '2026-01-01 ~ 2026-12-31'
   const [contractStartStr, contractEndStr] = contractPeriod.split(' ~ ')
@@ -5927,9 +6032,14 @@ const calculateMonthlyWorkDays = (person: any, m: { year: number; month: number;
   }
   const contractEnd = new Date(contractEndStrFull)
   
-  // 人员入场和离场日期
-  const entryDate = new Date(person.entryDate)
+  // 人员入场和离场日期 - 处理空日期情况
+  const entryDate = person.entryDate ? new Date(person.entryDate) : contractStart
   const exitDate = person.exitDate ? new Date(person.exitDate) : contractEnd
+  
+  // 验证日期有效性
+  if (isNaN(entryDate.getTime()) || isNaN(exitDate.getTime())) {
+    return '0.000'
+  }
   
   // 计算指定月份的开始和结束日期（使用月份对象的年份）
   const monthStart = new Date(m.year, m.month - 1, 1)
@@ -5938,6 +6048,11 @@ const calculateMonthlyWorkDays = (person: any, m: { year: number; month: number;
   // 确保计算范围在合同周期内
   const actualStart = new Date(Math.max(entryDate.getTime(), monthStart.getTime(), contractStart.getTime()))
   const actualEnd = new Date(Math.min(exitDate.getTime(), monthEnd.getTime(), contractEnd.getTime()))
+  
+  // 验证计算后的日期范围
+  if (isNaN(actualStart.getTime()) || isNaN(actualEnd.getTime()) || actualStart > actualEnd) {
+    return '0.000'
+  }
   
   // 计算工作天数
   let workDays = 0
@@ -5964,7 +6079,7 @@ const calculateMonthlyWorkDays = (person: any, m: { year: number; month: number;
 const calculateWorkDays = (person: any) => {
   let totalDays = 0
   for (let month = 1; month <= 12; month++) {
-    totalDays += parseFloat(calculateMonthlyWorkDays(person, month))
+    totalDays += parseFloat(calculateMonthlyWorkDays(person, { year: new Date().getFullYear(), month, key: `month${month}` }))
   }
   return totalDays.toFixed(3)
 }
