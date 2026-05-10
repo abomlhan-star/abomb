@@ -1,0 +1,28 @@
+const bcrypt = require('bcryptjs');
+const mysql = require('mysql2/promise');
+
+async function createAdminUser() {
+  const connection = await mysql.createConnection({
+    host: 'chengyan-mysql',
+    port: 3306,
+    user: 'root',
+    password: '123456',
+    database: 'chengyan_operation'
+  });
+
+  const hashedPassword = await bcrypt.hash('admin123', 10);
+  
+  await connection.execute(
+    `INSERT INTO users (account, password, name, email, role)
+     VALUES (?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE password = VALUES(password)`,
+    ['admin', hashedPassword, '系统管理员', 'admin@chengyan.com', 'admin']
+  );
+
+  console.log('Admin user created successfully');
+  console.log('Account: admin');
+  console.log('Password: admin123');
+  await connection.end();
+}
+
+createAdminUser().catch(console.error);

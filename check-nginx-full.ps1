@@ -14,27 +14,20 @@ $sessionOptions.GiveUpSecurityAndAcceptAnySshHostKey = $true
 $session = New-Object WinSCP.Session
 
 try {
+    Write-Host "Connecting to $server..."
     $session.Open($sessionOptions)
     Write-Host "Connected!"
 
-    Write-Host "=== sites-enabled ==="
-    $result = $session.ExecuteCommand("ls -la /etc/nginx/sites-enabled/")
+    Write-Host "`n=== 检查Nginx完整配置 ==="
+    $result = $session.ExecuteCommand("cat /etc/nginx/nginx.conf 2>&1")
     Write-Host $result.Output
 
-    Write-Host "=== nginx.conf ==="
-    $result = $session.ExecuteCommand("cat /etc/nginx/nginx.conf")
+    Write-Host "`n=== 检查各目录的index.html ==="
+    $result = $session.ExecuteCommand("echo '--- /var/www/cheng-yan-operation/dist/ ---' && ls -la /var/www/cheng-yan-operation/dist/ 2>&1 && echo '--- /var/www/chengyan-operation/dist/ ---' && ls -la /var/www/chengyan-operation/dist/ 2>&1 && echo '--- /usr/share/nginx/html/dist/ ---' && ls -la /usr/share/nginx/html/dist/ 2>&1")
     Write-Host $result.Output
 
-    Write-Host "=== conf.d ==="
-    $result = $session.ExecuteCommand("ls -la /etc/nginx/conf.d/")
-    Write-Host $result.Output
-
-    Write "=== conf.d default ==="
-    $result = $session.ExecuteCommand("cat /etc/nginx/conf.d/default.conf")
-    Write-Host $result.Output
-
-    Write-Host "=== /usr/share/nginx/html ==="
-    $result = $session.ExecuteCommand("ls -la /usr/share/nginx/html/")
+    Write-Host "`n=== 检查符号链接 ==="
+    $result = $session.ExecuteCommand("ls -la /usr/share/nginx/html/ 2>&1")
     Write-Host $result.Output
 }
 catch {

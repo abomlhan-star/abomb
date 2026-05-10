@@ -287,19 +287,14 @@ const migrations = [
     version: '1.0.6',
     description: 'Add project_id to settlement_levels table',
     sql: `
-      ALTER TABLE settlement_levels
-      ADD COLUMN project_id INT NOT NULL DEFAULT 1 AFTER id,
-      ADD FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-      ADD INDEX idx_project (project_id),
-      DROP INDEX idx_name,
-      ADD UNIQUE INDEX idx_project_name (project_id, name);
+      SELECT 'Migration 1.0.6: settlement_levels already has project_id from migration 1.0.0' AS message;
     `
   },
   {
     version: '1.0.7',
     description: 'Add amount field to orders table',
     sql: `
-      ALTER TABLE orders ADD COLUMN amount DECIMAL(15, 2) DEFAULT 0 AFTER order_date;
+      SELECT 'Migration 1.0.7: orders.amount already exists from migration 1.0.0' AS message;
     `
   }
 ]
